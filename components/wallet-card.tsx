@@ -1,0 +1,374 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { Wallet, Activity, Copy, Check, ExternalLink, Zap, Shield, Globe, AlertCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { CelebrationAnimation } from "@/components/celebration-animation"
+import { InteractionLevelPopup } from "@/components/interaction-level-popup"
+import { connectWallet, isWalletInstalled, getAccounts, getChainId, ensureArcTestnet, getWalletName, registerQueryAsTransaction } from "@/lib/wallet"
+
+interface WalletData {
+  address: string
+  interactions: number
+}
+
+export function WalletCard() {
+  const [isConnected, setIsConnected] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [walletData, setWalletData] = useState<WalletData | null>(null)
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [showLevelPopup, setShowLevelPopup] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isLoadingStats, setIsLoadingStats] = useState(false)
+  const [isRegisteringTransaction, setIsRegisteringTransaction] = useState(false)
+  const [lastTransactionHash, setLastTransactionHash] = useState<string | null>(null)
+
+  const shortenAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
+  }
+
+  // Fetch wallet statistics from API and register query as transaction
+  const fetchWalletStats = useCallback(async (address: string, registerTransaction: boolean = true) => {
+    setIsLoadingStats(true)
+    setError(null)
+
+    try {
+      // First, register the query as an on-chain transaction
+      // This creates a transaction every time the wallet is queried
+      if (registerTransaction) {
+        try {
+          setIsRegisteringTransaction(true)
+          console.log('📝 Registrando consulta como transação on-chain...')
+          
+          // Try to use contract if available, otherwise use self-transfer
+          const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
+          const txHash = await registerQueryAsTransaction(contractAddress)
+          
+          console.log('✅ Transação criada:', txHash)
+          setLastTransactionHash(txHash)
+          
+          // Wait a bit for transaction to be included in a block
+          await new Promise(resolve => setTimeout(resolve, 3000))
+        } catch (txError: any) {
+          console.warn('⚠️ Não foi possível criar transação:', txError)
+          
+          // If user rejected, don't show error - just continue
+          if (txError.message && txError.message.includes('rejected')) {
+            console.log('Usuário rejeitou a transação - continuando sem registrar')
+          } else {
+            // For other errors, show warning but continue
+            console.warn('Transação não criada, mas continuando com a consulta')
+          }
+        } finally {
+          setIsRegisteringTransaction(false)
+        }
+      }
+
+      // Then fetch wallet statistics (which will now include the new transaction)
+      const response = await fetch(`/api/wallet-stats?address=${address}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fetch wallet statistics')
+      }
+
+      const data = await response.json()
+      
+      const newWalletData = {
+        address: data.address,
+        interactions: data.txCount,
+      }
+      
+      setWalletData(newWalletData)
+
+      // Show celebration animation after successful connection
+      setShowCelebration(true)
+      setTimeout(() => setShowCelebration(false), 4500)
+      setTimeout(() => {
+        setShowLevelPopup(true)
+      }, 2000)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch wallet statistics'
+      setError(errorMessage)
+      console.error('Error fetching wallet stats:', err)
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }, [])
+
+  const handleConnect = useCallback(async () => {
+    setIsConnecting(true)
+    setError(null)
+
+    try {
+      // Check if any compatible wallet is installed
+      if (!isWalletInstalled()) {
+        throw new Error('No compatible wallet found. Please install MetaMask or Rabby Wallet to continue.')
+      }
+
+      // Connect wallet and ensure correct network
+      const address = await connectWallet()
+
+      // Verify network one more time
+      const chainId = await getChainId()
+      if (chainId !== 5042002) {
+        await ensureArcTestnet()
+      }
+
+      setIsConnected(true)
+      setIsConnecting(false)
+
+      // Fetch wallet statistics
+      await fetchWalletStats(address)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet'
+      setError(errorMessage)
+      setIsConnecting(false)
+      console.error('Error connecting wallet:', err)
+    }
+  }, [fetchWalletStats])
+
+  // Check if wallet is already connected on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (!isWalletInstalled()) return
+
+      try {
+        const accounts = await getAccounts()
+        if (accounts && accounts.length > 0) {
+          const address = accounts[0]
+          // Verify network
+          const chainId = await getChainId()
+          if (chainId === 5042002) {
+            setIsConnected(true)
+            await fetchWalletStats(address)
+          }
+        }
+      } catch (error) {
+        // Silently fail - user not connected
+      }
+    }
+
+    checkConnection()
+
+    // Listen for account changes
+    if (typeof window !== 'undefined' && window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length === 0) {
+          setIsConnected(false)
+          setWalletData(null)
+        } else {
+          handleConnect()
+        }
+      }
+
+      const handleChainChanged = () => {
+        window.location.reload()
+      }
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+      window.ethereum.on('chainChanged', handleChainChanged)
+
+      return () => {
+        window.ethereum?.removeListener('accountsChanged', handleAccountsChanged)
+        window.ethereum?.removeListener('chainChanged', handleChainChanged)
+      }
+    }
+  }, [fetchWalletStats, handleConnect])
+
+
+  const handleDisconnect = () => {
+    setIsConnected(false)
+    setWalletData(null)
+  }
+
+  const copyAddress = async () => {
+    if (walletData) {
+      await navigator.clipboard.writeText(walletData.address)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <>
+      <CelebrationAnimation isActive={showCelebration} />
+      {walletData && (
+        <InteractionLevelPopup
+          isOpen={showLevelPopup}
+          onClose={() => setShowLevelPopup(false)}
+          interactions={walletData.interactions}
+        />
+      )}
+      <div className="relative w-full max-w-md">
+        {/* Glow effect behind card */}
+        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-arc-accent/20 via-arc-accent/10 to-arc-accent/20 blur-xl opacity-70" />
+        
+        {/* Main card */}
+        <div className="relative rounded-2xl border border-white/10 bg-card/80 p-8 backdrop-blur-xl transition-all duration-500 hover:border-arc-accent/30">
+          {/* Decorative corner accents */}
+          <div className="absolute left-0 top-0 h-20 w-20 rounded-tl-2xl border-l-2 border-t-2 border-arc-accent/30" />
+          <div className="absolute bottom-0 right-0 h-20 w-20 rounded-br-2xl border-b-2 border-r-2 border-arc-accent/30" />
+
+          {/* Header with logo */}
+          <div className="mb-8 flex flex-col items-center">
+            <div className="animate-pulse-glow mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-arc-accent to-arc-accent/70">
+              <Wallet className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">ARC Network</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Decentralized Infrastructure</p>
+          </div>
+
+          {!isConnected ? (
+            <div className="flex flex-col items-center">
+              {/* Feature badges */}
+              <div className="mb-8 flex flex-wrap justify-center gap-3">
+                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground">
+                  <Shield className="h-3 w-3 text-arc-accent" />
+                  Secure
+                </div>
+                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground">
+                  <Zap className="h-3 w-3 text-arc-accent" />
+                  Fast
+                </div>
+                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground">
+                  <Globe className="h-3 w-3 text-arc-accent" />
+                  EVM
+                </div>
+              </div>
+
+              <p className="mb-6 text-center text-sm text-muted-foreground">
+                Connect your wallet to view your network interactions and activity
+              </p>
+
+              {/* Error message */}
+              {error && (
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+              
+              <Button
+                onClick={handleConnect}
+                disabled={isConnecting}
+                className="group relative w-full overflow-hidden rounded-xl bg-arc-accent py-6 text-base font-semibold text-white transition-all duration-300 hover:bg-arc-accent/90 hover:shadow-[0_0_30px_rgba(0,174,239,0.4)] disabled:opacity-70"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                {isConnecting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Connecting...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <Wallet className="h-5 w-5" />
+                    Connect Wallet
+                  </span>
+                )}
+              </Button>
+
+              {/* Supported wallets hint */}
+              <p className="mt-4 text-xs text-muted-foreground/60">
+                MetaMask or Rabby Wallet • ARC Testnet
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {/* Connected status */}
+              <div className="mb-6 flex items-center justify-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                </span>
+                <span className="text-sm font-medium text-green-400">Connected</span>
+              </div>
+
+              {/* Wallet Address Card */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20">
+                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <Wallet className="h-3.5 w-3.5 text-arc-accent" />
+                  Wallet Address
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-lg font-semibold text-foreground">
+                    {walletData && shortenAddress(walletData.address)}
+                  </span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={copyAddress}
+                      className="rounded-lg p-2.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent"
+                      title="Copy address"
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-400" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
+                    <a
+                      href={`https://testnet.arcscan.app/address/${walletData?.address}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg p-2.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent"
+                      title="View on explorer"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Interactions Card */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20">
+                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <Activity className="h-3.5 w-3.5 text-arc-accent" />
+                  Total Interactions
+                </div>
+                {isLoadingStats ? (
+                  <div className="flex items-center justify-center py-8">
+                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-arc-accent border-t-transparent" />
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center gap-2 py-4 text-sm text-red-400">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Failed to load interactions</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-baseline gap-3">
+                      <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-4xl font-bold text-transparent">
+                        {walletData?.interactions.toLocaleString() || 0}
+                      </span>
+                      <span className="text-sm text-muted-foreground">transactions</span>
+                    </div>
+                    {/* Mini chart visualization */}
+                    <div className="mt-4 flex items-end gap-1 h-8">
+                      {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 95, 80].map((height, i) => (
+                        <div
+                          key={i}
+                          className="flex-1 rounded-sm bg-arc-accent/30 transition-all hover:bg-arc-accent/50"
+                          style={{ height: `${height}%` }}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Disconnect Button */}
+              <Button
+                onClick={handleDisconnect}
+                variant="outline"
+                className="w-full rounded-xl border-white/10 bg-transparent py-5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
+              >
+                Disconnect Wallet
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
