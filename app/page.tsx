@@ -30,13 +30,17 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4">
           <a 
-            href="#" 
+            href="https://docs.arc.network/arc/references/contract-addresses" 
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Docs
           </a>
           <a 
-            href="#" 
+            href="https://www.arc.network/" 
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             Explorer
