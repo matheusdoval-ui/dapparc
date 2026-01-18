@@ -22,12 +22,7 @@ export default function Home() {
 
       {/* Navigation */}
       <nav className="absolute left-0 right-0 top-0 flex items-center justify-between px-6 py-4 sm:px-12">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-arc-accent">
-            <span className="text-sm font-bold text-white">A</span>
-          </div>
-          <span className="text-lg font-semibold text-foreground">ARC</span>
-        </div>
+        <div></div>
         <div className="flex items-center gap-4">
           <a 
             href="https://docs.arc.network/arc/references/contract-addresses" 
@@ -57,61 +52,10 @@ export default function Home() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-arc-accent opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-arc-accent" />
             </span>
-            <span className="text-sm font-medium text-arc-accent">Mainnet Live</span>
+            <span className="text-sm font-medium text-arc-accent">Testnet Live</span>
           </div>
-          <h1 className="relative text-balance text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl mb-2">
-            {/* Glow effect behind text */}
-            <span className="absolute inset-0 bg-gradient-to-r from-arc-accent via-cyan-300 to-arc-accent blur-2xl opacity-50 animate-pulse -z-10" />
-            
-            {/* Main gradient text with shimmer container */}
-            <span className="relative inline-block">
-              {/* Text container - fits text exactly, no extra space */}
-              <span className="relative inline-block" style={{ isolation: 'isolate', display: 'inline-block' }}>
-                {/* Base text */}
-                <span 
-                  className="bg-gradient-to-r from-arc-accent via-cyan-300 via-blue-400 to-arc-accent bg-clip-text text-transparent animate-gradient bg-[length:200%_auto] inline-block"
-                  style={{
-                    WebkitBackgroundClip: 'text',
-                    backgroundClip: 'text',
-                    position: 'relative',
-                    zIndex: 1
-                  }}
-                >
-                  ARCtx
-                </span>
-                
-                {/* Shimmer - same text, clipped to text shape, no rectangular area */}
-                <span 
-                  className="absolute top-0 left-0 animate-shimmer pointer-events-none inline-block"
-                  style={{ 
-                    animationDuration: '4s',
-                    animationTimingFunction: 'ease-in-out',
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)',
-                    WebkitBackgroundClip: 'text',
-                    backgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    color: 'transparent',
-                    mixBlendMode: 'screen',
-                    fontSize: 'inherit',
-                    fontWeight: 'inherit',
-                    fontFamily: 'inherit',
-                    lineHeight: 'inherit',
-                    whiteSpace: 'nowrap',
-                    zIndex: 2
-                  }}
-                >
-                  ARCtx
-                </span>
-              </span>
-              
-              {/* Animated accent dot */}
-              <span className="absolute -top-1 right-0 h-2.5 w-2.5 bg-arc-accent rounded-full animate-ping opacity-60 z-20" style={{ animationDuration: '2s' }} />
-              <span className="absolute -top-1 right-0 h-2.5 w-2.5 bg-arc-accent rounded-full shadow-[0_0_8px_rgba(0,174,239,0.6)] z-20" />
-            </span>
-            
-            {/* Decorative elements */}
-            <span className="absolute -left-8 top-1/2 -translate-y-1/2 h-1 w-6 bg-gradient-to-r from-transparent to-arc-accent/50 rounded-full opacity-60 -z-10" />
-            <span className="absolute -right-8 top-1/2 -translate-y-1/2 h-1 w-6 bg-gradient-to-l from-transparent to-arc-accent/50 rounded-full opacity-60 -z-10" />
+          <h1 className="text-balance text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl mb-2 text-foreground">
+            ARCtx
           </h1>
           <p className="mx-auto mt-4 max-w-md text-pretty text-base text-muted-foreground sm:text-lg">
             the dapp that checks your onchain interaction
@@ -155,7 +99,9 @@ export default function Home() {
             <span>@matheusdovalx</span>
           </a>
           <a 
-            href="#" 
+            href="https://github.com/matheusdoval-ui" 
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-muted-foreground/60 transition-colors hover:text-foreground"
             aria-label="GitHub"
           >
