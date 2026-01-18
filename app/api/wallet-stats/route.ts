@@ -37,11 +37,19 @@ export async function GET(request: NextRequest) {
     // This is the number of transactions sent from this address
     const txCount = await provider.getTransactionCount(address, 'latest')
 
+    // Get USDC balance (native balance on Arc)
+    const balance = await provider.getBalance(address)
+    // Convert from wei (18 decimals) to USDC display (6 decimals)
+    const balanceUSDC = Number(balance) / 1e18
+
     // Return wallet statistics
     return NextResponse.json({
       address: address,
       txCount: txCount,
+      balance: balanceUSDC,
+      balanceFormatted: balanceUSDC.toFixed(2),
       network: 'Arc Testnet',
+      lastUpdated: new Date().toISOString(),
     })
   } catch (error) {
     console.error('Error fetching wallet stats:', error)

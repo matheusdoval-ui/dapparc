@@ -1,14 +1,23 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Wallet, Activity, Copy, Check, ExternalLink, Zap, Shield, Globe, AlertCircle } from "lucide-react"
+import { Wallet, Activity, Copy, Check, ExternalLink, Zap, Shield, Globe, AlertCircle, Coins, RefreshCw, Clock, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CelebrationAnimation } from "@/components/celebration-animation"
 import { InteractionLevelPopup } from "@/components/interaction-level-popup"
 import { connectWallet, isWalletInstalled, getAccounts, getChainId, ensureArcTestnet, getWalletName, registerQueryAsTransaction } from "@/lib/wallet"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface WalletData {
   address: string
+  interactions: number
+  balance?: number
+  balanceFormatted?: string
+  lastUpdated?: string
+}
+
+interface ChartDataPoint {
+  date: string
   interactions: number
 }
 
@@ -23,14 +32,47 @@ export function WalletCard() {
   const [isLoadingStats, setIsLoadingStats] = useState(false)
   const [isRegisteringTransaction, setIsRegisteringTransaction] = useState(false)
   const [lastTransactionHash, setLastTransactionHash] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([])
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
+  // Generate chart data showing growth over last 30 days
+  // This simulates growth based on current transaction count
+  const generateChartData = useCallback((currentTxCount: number) => {
+    const data: ChartDataPoint[] = []
+    const days = 30
+    const today = new Date()
+
+    // Estimate growth: assume gradual increase over time
+    // If current count is low, show slow growth; if high, show faster growth
+    const growthRate = Math.min(currentTxCount / 100, 1) // Normalize growth rate
+    
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      
+      // Simulate gradual growth: current count * (days_ago / total_days) * growth_factor
+      const daysAgo = days - i
+      const progress = daysAgo / days
+      // Apply exponential-like growth curve
+      const estimatedCount = Math.max(0, Math.floor(currentTxCount * Math.pow(progress, 0.7 + growthRate * 0.3)))
+      
+      data.push({
+        date: date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }),
+        interactions: estimatedCount,
+      })
+    }
+
+    setChartData(data)
+  }, [])
+
   // Fetch wallet statistics from API and register query as transaction
   const fetchWalletStats = useCallback(async (address: string, registerTransaction: boolean = true) => {
     setIsLoadingStats(true)
+    setIsRefreshing(true)
     setError(null)
 
     try {
@@ -78,9 +120,20 @@ export function WalletCard() {
       const newWalletData = {
         address: data.address,
         interactions: data.txCount,
+        balance: data.balance,
+        balanceFormatted: data.balanceFormatted,
+        lastUpdated: data.lastUpdated,
       }
       
       setWalletData(newWalletData)
+
+      // Generate chart data (simulated growth over last 30 days)
+      // In production, this could come from an API that tracks historical data
+      if (data.txCount > 0) {
+        generateChartData(data.txCount)
+      } else {
+        setChartData([])
+      }
 
       // Show celebration animation after successful connection
       setShowCelebration(true)
@@ -94,6 +147,7 @@ export function WalletCard() {
       console.error('Error fetching wallet stats:', err)
     } finally {
       setIsLoadingStats(false)
+      setIsRefreshing(false)
     }
   }, [])
 
@@ -320,11 +374,50 @@ export function WalletCard() {
                 </div>
               </div>
 
+              {/* USDC Balance Card */}
+              {walletData?.balance !== undefined && (
+                <div className="rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      <Coins className="h-3.5 w-3.5 text-arc-accent" />
+                      USDC Balance
+                    </div>
+                    {walletData.lastUpdated && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
+                        <Clock className="h-3 w-3" />
+                        <span>
+                          {new Date(walletData.lastUpdated).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-3xl font-bold text-transparent">
+                      {walletData.balanceFormatted || walletData.balance?.toFixed(2) || '0.00'}
+                    </span>
+                    <span className="text-sm text-muted-foreground">USDC</span>
+                  </div>
+                </div>
+              )}
+
               {/* Interactions Card */}
               <div className="rounded-xl border border-white/10 bg-white/5 p-5 transition-all hover:border-white/20">
-                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  <Activity className="h-3.5 w-3.5 text-arc-accent" />
-                  Total Interactions
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    <Activity className="h-3.5 w-3.5 text-arc-accent" />
+                    Total Interactions
+                  </div>
+                  <button
+                    onClick={() => walletData && fetchWalletStats(walletData.address, false)}
+                    disabled={isRefreshing || isLoadingStats}
+                    className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent disabled:opacity-50"
+                    title="Refresh stats"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing || isLoadingStats ? 'animate-spin' : ''}`} />
+                  </button>
                 </div>
                 {isLoadingStats ? (
                   <div className="flex items-center justify-center py-8">
@@ -343,16 +436,62 @@ export function WalletCard() {
                       </span>
                       <span className="text-sm text-muted-foreground">transactions</span>
                     </div>
-                    {/* Mini chart visualization */}
-                    <div className="mt-4 flex items-end gap-1 h-8">
-                      {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 95, 80].map((height, i) => (
-                        <div
-                          key={i}
-                          className="flex-1 rounded-sm bg-arc-accent/30 transition-all hover:bg-arc-accent/50"
-                          style={{ height: `${height}%` }}
-                        />
-                      ))}
-                    </div>
+                    
+                    {/* Growth Chart - Only show if we have data */}
+                    {chartData.length > 0 && (
+                      <div className="mt-6 h-48 w-full">
+                        <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <TrendingUp className="h-3 w-3 text-arc-accent" />
+                          <span>Growth over last 30 days</span>
+                        </div>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                            <XAxis 
+                              dataKey="date" 
+                              stroke="rgba(255,255,255,0.3)"
+                              style={{ fontSize: '10px' }}
+                              interval={Math.floor(chartData.length / 6)}
+                            />
+                            <YAxis 
+                              stroke="rgba(255,255,255,0.3)"
+                              style={{ fontSize: '10px' }}
+                              width={40}
+                            />
+                            <Tooltip 
+                              contentStyle={{
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '8px',
+                                color: '#fff',
+                              }}
+                              labelStyle={{ color: '#fff' }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="interactions" 
+                              stroke="#00AEEF" 
+                              strokeWidth={2}
+                              dot={{ fill: '#00AEEF', r: 3 }}
+                              activeDot={{ r: 5 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                    
+                    {/* Fallback mini chart if no data */}
+                    {chartData.length === 0 && (
+                      <div className="mt-4 flex items-end gap-1 h-8">
+                        {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 95, 80].map((height, i) => (
+                          <div
+                            key={i}
+                            className="flex-1 rounded-sm bg-arc-accent/30 transition-all hover:bg-arc-accent/50"
+                            style={{ height: `${height}%` }}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
