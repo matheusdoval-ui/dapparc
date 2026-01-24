@@ -287,23 +287,35 @@ export async function recordWalletConsultation(
       existing.transactions = transactionCount
       existing.lastConsultedAt = now
       existing.consultCount++
-      existing.arcAge = arcAge
+      
+      // Calculate ARC Age: days since first consultation (or use provided arcAge if available)
+      if (arcAge !== null && arcAge !== undefined) {
+        existing.arcAge = arcAge
+      } else {
+        // Calculate based on firstConsultedAt
+        const daysSinceFirstConsult = Math.floor((now - existing.firstConsultedAt) / (1000 * 60 * 60 * 24))
+        existing.arcAge = daysSinceFirstConsult
+      }
+      
       existing.hasPaidFee = true // Keep for backward compatibility, but now means "registered"
       walletToSave = existing
-      console.log(`📊 Updated wallet stats: ${normalizedAddress}, TX: ${transactionCount}, Consults: ${existing.consultCount}`)
+      console.log(`📊 Updated wallet stats: ${normalizedAddress}, TX: ${transactionCount}, Consults: ${existing.consultCount}, ARC Age: ${existing.arcAge} days`)
     } else {
       // Create new entry
+      // ARC Age starts at 0 (first day)
+      const calculatedArcAge = arcAge !== null && arcAge !== undefined ? arcAge : 0
+      
       walletToSave = {
         address: normalizedAddress,
         transactions: transactionCount,
         firstConsultedAt: now,
         lastConsultedAt: now,
         consultCount: 1,
-        arcAge: arcAge,
+        arcAge: calculatedArcAge,
         hasPaidFee: true, // Keep for backward compatibility, but now means "registered"
       }
       walletStatsMap.set(normalizedAddress, walletToSave)
-      console.log(`🆕 New wallet added to leaderboard: ${normalizedAddress}, TX: ${transactionCount}`)
+      console.log(`🆕 New wallet added to leaderboard: ${normalizedAddress}, TX: ${transactionCount}, ARC Age: ${calculatedArcAge} days`)
     }
 
     console.log(`📦 Current map size after: ${walletStatsMap.size}`)
