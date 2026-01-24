@@ -1,0 +1,32 @@
+===============================================
+COMANDOS RÁPIDOS PARA COMMIT E PUSH
+===============================================
+
+Copie e cole estes comandos no CMD (Prompt de Comando):
+
+cd C:\Users\mathe\Desktop\dapp\arc-network-d-app
+git add app/api/wallet-stats/route.ts components/wallet-card.tsx
+git commit -m "Adicionar melhorias: saldo USDC, grafico de crescimento e refresh manual"
+git push
+
+===============================================
+OU EXECUTE O SCRIPT:
+===============================================
+
+Clique duas vezes em: commit-melhorias.bat
+
+===============================================
+ARQUIVOS QUE SERÃO COMMITADOS:
+===============================================
+
+1. app/api/wallet-stats/route.ts
+   - Adicionado saldo USDC
+   - Adicionado timestamp de última atualização
+
+2. components/wallet-card.tsx
+   - Adicionado card de saldo USDC
+   - Adicionado gráfico de crescimento (30 dias)
+   - Adicionado botão de refresh manual
+   - Melhorias visuais
+
+===============================================

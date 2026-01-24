@@ -1,0 +1,52 @@
+===============================================
+COMANDOS PARA CMD (PROMPT DE COMANDO)
+===============================================
+
+Copie e cole estes comandos UM POR VEZ no CMD:
+
+1. Navegar até o projeto:
+cd C:\Users\mathe\Desktop\dapp\arc-network-d-app
+
+2. Ver status (opcional - para verificar):
+git status
+
+3. Adicionar arquivo modificado:
+git add app/page.tsx
+
+4. Fazer commit:
+git commit -m "Atualizar interface: mudanças visuais e links"
+
+5. Enviar para GitHub:
+git push
+
+===============================================
+COMANDOS COMPLETOS (SE JÁ TEM GIT):
+===============================================
+
+cd C:\Users\mathe\Desktop\dapp\arc-network-d-app
+git add app/page.tsx
+git commit -m "Atualizar interface: mudanças visuais e links"
+git push
+
+===============================================
+PRIMEIRA VEZ? EXECUTE ANTES:
+===============================================
+
+Configurar usuário (substitua o email):
+git config --global user.name "matheusdoval-ui"
+git config --global user.email "seu-email@example.com"
+
+===============================================
+SE PEDIR AUTENTICAÇÃO:
+===============================================
+
+Username: matheusdoval-ui
+Password: [seu Personal Access Token - NÃO sua senha do GitHub]
+
+Para criar token:
+1. Acesse: https://github.com/settings/tokens
+2. Clique em "Generate new token (classic)"
+3. Escolha escopo: repo
+4. Copie o token e use como senha
+
+===============================================

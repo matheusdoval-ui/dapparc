@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Wallet, Activity, Copy, Check, ExternalLink, Zap, Shield, Globe, AlertCircle, Coins, RefreshCw, Clock, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { CelebrationAnimation } from "@/components/celebration-animation"
 import { InteractionLevelPopup } from "@/components/interaction-level-popup"
 import { connectWallet, isWalletInstalled, getAccounts, getChainId, ensureArcTestnet, getWalletName, registerQueryAsTransaction } from "@/lib/wallet"
@@ -34,6 +35,8 @@ export function WalletCard() {
   const [lastTransactionHash, setLastTransactionHash] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [chartData, setChartData] = useState<ChartDataPoint[]>([])
+  const [manualAddress, setManualAddress] = useState("")
+  const [manualLookupAddress, setManualLookupAddress] = useState<string | null>(null)
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -183,6 +186,28 @@ export function WalletCard() {
     }
   }, [fetchWalletStats])
 
+  const handleManualLookup = useCallback(async () => {
+    const trimmed = manualAddress.trim()
+
+    if (!trimmed) {
+      setError('Digite um endereço de carteira válido para continuar.')
+      return
+    }
+
+    const ethAddressPattern = /^0x[a-fA-F0-9]{40}$/
+    if (!ethAddressPattern.test(trimmed)) {
+      setError('Cole um endereço com o formato 0x seguido de 40 caracteres hexadecimais.')
+      return
+    }
+
+    setError(null)
+    setManualLookupAddress(null)
+    setIsConnected(false)
+
+    await fetchWalletStats(trimmed, false)
+    setManualLookupAddress(trimmed)
+  }, [manualAddress, fetchWalletStats])
+
   // Check if wallet is already connected on mount
   useEffect(() => {
     const checkConnection = async () => {
@@ -235,6 +260,8 @@ export function WalletCard() {
   const handleDisconnect = () => {
     setIsConnected(false)
     setWalletData(null)
+    setManualLookupAddress(null)
+    setManualAddress('')
   }
 
   const copyAddress = async () => {
@@ -274,7 +301,7 @@ export function WalletCard() {
             <p className="mt-1 text-sm text-muted-foreground">Decentralized Infrastructure</p>
           </div>
 
-          {!isConnected ? (
+          {!walletData ? (
             <div className="flex flex-col items-center">
               {/* Feature badges */}
               <div className="mb-8 flex flex-wrap justify-center gap-3">
@@ -293,7 +320,7 @@ export function WalletCard() {
               </div>
 
               <p className="mb-6 text-center text-sm text-muted-foreground">
-                Connect your wallet to view your network interactions and activity
+                Conecte sua carteira ou cole um endereço para visualizar as interações on-chain de forma transparente.
               </p>
 
               {/* Error message */}
@@ -313,30 +340,60 @@ export function WalletCard() {
                 {isConnecting ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Connecting...
+                    Conectando...
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <Wallet className="h-5 w-5" />
-                    Connect Wallet
+                    Conectar carteira
                   </span>
                 )}
               </Button>
 
               {/* Supported wallets hint */}
               <p className="mt-4 text-xs text-muted-foreground/60">
-                MetaMask or Rabby Wallet • ARC Testnet
+                MetaMask ou Rabby Wallet • ARC Testnet
               </p>
+
+              <div className="mt-6 w-full space-y-3">
+                <p className="text-center text-xs text-muted-foreground/80">
+                  Ou cole um endereço ARC (0x...) para verificar interações sem precisar assinar transações.
+                </p>
+                <div className="flex w-full gap-3">
+                  <Input
+                    value={manualAddress}
+                    onChange={(event) => setManualAddress(event.target.value)}
+                    placeholder="0x1234...abcd"
+                    className="flex-1 border-white/30 bg-white/[0.05] text-sm text-white placeholder:text-white/40"
+                    autoComplete="off"
+                    maxLength={66}
+                  />
+                  <Button
+                    onClick={handleManualLookup}
+                    disabled={isLoadingStats || !manualAddress.trim()}
+                    className="flex-shrink-0 rounded-xl bg-white/10 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/20 disabled:opacity-60"
+                  >
+                    Verificar
+                  </Button>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="space-y-5">
               {/* Connected status */}
-              <div className="mb-6 flex items-center justify-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+              <div className="mb-6 flex flex-col items-center gap-1">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                  </span>
+                  <span className="text-sm font-medium text-green-400">
+                    {isConnected ? 'Conectado' : 'Consulta manual'}
+                  </span>
+                </div>
+                <span className="text-xs text-muted-foreground/60">
+                  {isConnected ? 'Carteira ARC Testnet ativa' : 'Endereço analisado manualmente'}
                 </span>
-                <span className="text-sm font-medium text-green-400">Connected</span>
               </div>
 
               {/* Wallet Address Card */}
@@ -434,7 +491,7 @@ export function WalletCard() {
                       <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-4xl font-bold text-transparent">
                         {walletData?.interactions.toLocaleString() || 0}
                       </span>
-                      <span className="text-sm text-muted-foreground">transactions</span>
+                      <span className="text-sm text-muted-foreground">transações</span>
                     </div>
                     
                     {/* Growth Chart - Only show if we have data */}
@@ -502,7 +559,7 @@ export function WalletCard() {
                 variant="outline"
                 className="w-full rounded-xl border-white/10 bg-transparent py-5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
               >
-                Disconnect Wallet
+                {isConnected ? 'Desconectar carteira' : 'Limpar consulta'}
               </Button>
             </div>
           )}

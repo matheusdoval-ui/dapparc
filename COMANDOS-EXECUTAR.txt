@@ -1,0 +1,31 @@
+====================================
+COMANDOS PARA ATUALIZAR O GITHUB
+====================================
+
+Copie e cole estes comandos no terminal (PowerShell, CMD ou Git Bash):
+
+cd C:\Users\mathe\Desktop\dapp\arc-network-d-app
+git add app/page.tsx
+git commit -m "Atualizar links do cabeçalho: Docs e Explorer"
+git push
+
+====================================
+IMPORTANTE:
+====================================
+
+1. O Git precisa estar instalado primeiro!
+   Baixe em: https://git-scm.com/download/win
+
+2. Se for a primeira vez, configure seu usuário:
+   git config --global user.name "matheusdoval-ui"
+   git config --global user.email "seu-email@example.com"
+
+3. Se pedir autenticação, use Personal Access Token:
+   - Acesse: https://github.com/settings/tokens
+   - Gere um token com permissão "repo"
+   - Use o token como senha
+
+4. Ou use GitHub Desktop (mais fácil):
+   - Baixe: https://desktop.github.com/
+   - Abra o projeto
+   - Faça commit e push pela interface
