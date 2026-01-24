@@ -3,7 +3,22 @@
  * Provides persistent storage using Vercel KV (Redis-based)
  */
 
-import { kv } from '@vercel/kv'
+// Dynamic import to avoid errors when KV is not configured
+let kv: any = null
+let kvModule: any = null
+
+async function getKv() {
+  if (kv) return kv
+  
+  try {
+    kvModule = await import('@vercel/kv')
+    kv = kvModule.kv
+    return kv
+  } catch (error) {
+    console.warn('⚠️ Could not import @vercel/kv:', error)
+    return null
+  }
+}
 
 interface WalletStats {
   address: string
@@ -40,8 +55,13 @@ export async function loadFromKv(): Promise<Map<string, WalletStats>> {
   }
 
   try {
+    const kvInstance = await getKv()
+    if (!kvInstance) {
+      return new Map<string, WalletStats>()
+    }
+
     // Get list of all wallet addresses
-    const walletAddresses = await kv.smembers(KV_ALL_WALLETS_KEY)
+    const walletAddresses = await kvInstance.smembers(KV_ALL_WALLETS_KEY)
     
     if (!walletAddresses || walletAddresses.length === 0) {
       console.log('📂 No wallet data found in KV')
@@ -51,7 +71,7 @@ export async function loadFromKv(): Promise<Map<string, WalletStats>> {
     // Load all wallet stats in parallel
     const walletStatsPromises = walletAddresses.map(async (address: string) => {
       const key = `${KV_KEY_PREFIX}${address.toLowerCase()}`
-      const stats = await kv.get<WalletStats>(key)
+      const stats = await kvInstance.get<WalletStats>(key)
       return [address.toLowerCase(), stats] as [string, WalletStats | null]
     })
 
@@ -82,18 +102,24 @@ export async function saveToKv(walletStatsMap: Map<string, WalletStats>): Promis
   }
 
   try {
+    const kvInstance = await getKv()
+    if (!kvInstance) {
+      console.warn('⚠️ KV instance not available')
+      return
+    }
+
     // Collect all wallet addresses
     const walletAddresses = Array.from(walletStatsMap.keys())
     
     // Update the set of all wallets
     if (walletAddresses.length > 0) {
-      await kv.sadd(KV_ALL_WALLETS_KEY, ...walletAddresses)
+      await kvInstance.sadd(KV_ALL_WALLETS_KEY, ...walletAddresses)
     }
 
     // Save each wallet stat
     const savePromises = Array.from(walletStatsMap.entries()).map(async ([address, stats]) => {
       const key = `${KV_KEY_PREFIX}${address.toLowerCase()}`
-      await kv.set(key, stats)
+      await kvInstance.set(key, stats)
     })
 
     await Promise.all(savePromises)
@@ -114,14 +140,20 @@ export async function saveWalletToKv(address: string, stats: WalletStats): Promi
   }
 
   try {
+    const kvInstance = await getKv()
+    if (!kvInstance) {
+      console.warn('⚠️ KV instance not available')
+      return
+    }
+
     const normalizedAddress = address.toLowerCase()
     const key = `${KV_KEY_PREFIX}${normalizedAddress}`
     
     // Save wallet stats
-    await kv.set(key, stats)
+    await kvInstance.set(key, stats)
     
     // Add to set of all wallets
-    await kv.sadd(KV_ALL_WALLETS_KEY, normalizedAddress)
+    await kvInstance.sadd(KV_ALL_WALLETS_KEY, normalizedAddress)
     
     console.log(`💾 Saved wallet ${normalizedAddress} to Vercel KV`)
   } catch (error: any) {
@@ -139,14 +171,20 @@ export async function deleteWalletFromKv(address: string): Promise<void> {
   }
 
   try {
+    const kvInstance = await getKv()
+    if (!kvInstance) {
+      console.warn('⚠️ KV instance not available')
+      return
+    }
+
     const normalizedAddress = address.toLowerCase()
     const key = `${KV_KEY_PREFIX}${normalizedAddress}`
     
     // Delete wallet stats
-    await kv.del(key)
+    await kvInstance.del(key)
     
     // Remove from set of all wallets
-    await kv.srem(KV_ALL_WALLETS_KEY, normalizedAddress)
+    await kvInstance.srem(KV_ALL_WALLETS_KEY, normalizedAddress)
     
     console.log(`🗑️ Deleted wallet ${normalizedAddress} from Vercel KV`)
   } catch (error: any) {

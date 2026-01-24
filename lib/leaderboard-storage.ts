@@ -178,9 +178,9 @@ async function initializeStorage(): Promise<Map<string, WalletStats>> {
 let storagePromise: Promise<Map<string, WalletStats>> | null = null
 
 function getStorage(): Promise<Map<string, WalletStats>> {
-  // Always reinitialize if not initialized or if map is empty
-  // This ensures we try to load from file on every request
-  if (!storagePromise || !isInitialized || !walletStatsMap || walletStatsMap.size === 0) {
+  // Don't force reinitialize if already initialized - this causes issues
+  // Only initialize if not initialized yet
+  if (!storagePromise) {
     storagePromise = initializeStorage()
   }
   return storagePromise
@@ -310,40 +310,34 @@ export async function recordWalletConsultation(
     console.log(`📋 All addresses in map:`, Array.from(walletStatsMap.keys()))
 
     // Always try to save immediately to ensure persistence
-    // Priority: Vercel KV (production) > File (local dev) > globalThis (memory)
-    let saved = false
-
-    // Priority 1: Save individual wallet to Vercel KV (faster for single updates)
+    // Try both KV and file - don't fail if one doesn't work
+    
+    // Try to save to Vercel KV (non-blocking)
     try {
       await saveWalletToKv(normalizedAddress, walletToSave)
       console.log(`💾 Wallet saved to Vercel KV: ${normalizedAddress}`)
-      saved = true
     } catch (kvError: any) {
-      console.warn('⚠️ Could not save individual wallet to KV:', kvError.message || kvError)
-      
-      // Fallback: Try to save all data to KV
+      console.warn('⚠️ Could not save to KV (non-critical):', kvError.message || kvError)
+      // Try batch save as fallback
       try {
         await saveToKv(walletStatsMap)
-        console.log(`💾 All data saved to Vercel KV successfully (${walletStatsMap.size} entries)`)
-        saved = true
+        console.log(`💾 All data saved to Vercel KV (batch)`)
       } catch (kvBatchError: any) {
-        console.warn('⚠️ Could not save batch to KV:', kvBatchError.message || kvBatchError)
+        console.warn('⚠️ Could not save batch to KV (non-critical):', kvBatchError.message || kvBatchError)
       }
     }
 
-    // Priority 2: Save to file (local development fallback)
-    if (!saved) {
-      try {
-        await saveToFileImmediate()
-        console.log(`💾 Data saved to file successfully (${walletStatsMap.size} entries)`)
-        saved = true
-      } catch (err: any) {
-        // In serverless environments (Vercel), file system may be read-only
-        if (err.code === 'EROFS' || err.code === 'EACCES') {
-          console.warn('⚠️ File system is read-only (serverless environment)')
-        } else {
-          console.error('❌ Error saving to file:', err.message || err)
-        }
+    // Always try to save to file (works in local dev, may fail in serverless)
+    try {
+      await saveToFileImmediate()
+      console.log(`💾 Data saved to file successfully (${walletStatsMap.size} entries)`)
+    } catch (err: any) {
+      // In serverless environments (Vercel), file system may be read-only
+      // This is expected and OK - KV should handle it
+      if (err.code === 'EROFS' || err.code === 'EACCES') {
+        console.warn('⚠️ File system is read-only (serverless environment) - this is OK if KV is configured')
+      } else {
+        console.warn('⚠️ Error saving to file (non-critical):', err.message || err)
       }
     }
 
@@ -421,14 +415,8 @@ export function getLeaderboardSync(limit: number = 100): WalletStats[] {
  * Get leaderboard sorted by transactions and ARC Age (async version)
  */
 export async function getLeaderboard(limit: number = 100): Promise<WalletStats[]> {
-  // Force reload from storage to ensure we have latest data
+  // Ensure storage is loaded
   await getStorage()
-  // Double check - if still empty, try to reload
-  if (walletStatsMap.size === 0) {
-    console.log('⚠️ Storage is empty, attempting to reload...')
-    isInitialized = false
-    await initializeStorage()
-  }
   return getLeaderboardSync(limit)
 }
 
