@@ -6,7 +6,7 @@
 
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import { loadFromKv, saveToKv, saveWalletToKv } from './leaderboard-storage-kv'
+// Dynamic import to avoid loading KV module if not needed
 
 interface WalletStats {
   address: string
@@ -125,7 +125,9 @@ async function initializeStorage(): Promise<Map<string, WalletStats>> {
   // Only try if KV is available (has env vars)
   try {
     if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-      const kvData = await loadFromKv()
+      // Dynamic import to avoid loading if not needed
+      const kvModule = await import('./leaderboard-storage-kv')
+      const kvData = await kvModule.loadFromKv()
       if (kvData.size > 0) {
         walletStatsMap = kvData
         globalThis.__walletStatsMap = walletStatsMap
@@ -148,11 +150,14 @@ async function initializeStorage(): Promise<Map<string, WalletStats>> {
       console.log(`📂 Loaded ${fileData.size} entries from file`)
       
       // Sync to KV if available (migrate from file to KV)
-      try {
-        await saveToKv(walletStatsMap)
-        console.log('✅ Synced file data to Vercel KV')
-      } catch (kvError) {
-        console.warn('⚠️ Could not sync to KV:', kvError)
+      if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+        try {
+          const kvModule = await import('./leaderboard-storage-kv')
+          await kvModule.saveToKv(walletStatsMap)
+          console.log('✅ Synced file data to Vercel KV')
+        } catch (kvError) {
+          console.warn('⚠️ Could not sync to KV:', kvError)
+        }
       }
       
       return walletStatsMap
@@ -318,13 +323,16 @@ export async function recordWalletConsultation(
     // Try to save to Vercel KV (non-blocking, only if env vars are set)
     if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
       try {
-        await saveWalletToKv(normalizedAddress, walletToSave)
+        // Dynamic import to avoid loading if not needed
+        const kvModule = await import('./leaderboard-storage-kv')
+        await kvModule.saveWalletToKv(normalizedAddress, walletToSave)
         console.log(`💾 Wallet saved to Vercel KV: ${normalizedAddress}`)
       } catch (kvError: any) {
         console.warn('⚠️ Could not save to KV (non-critical):', kvError.message || kvError)
         // Try batch save as fallback
         try {
-          await saveToKv(walletStatsMap)
+          const kvModule = await import('./leaderboard-storage-kv')
+          await kvModule.saveToKv(walletStatsMap)
           console.log(`💾 All data saved to Vercel KV (batch)`)
         } catch (kvBatchError: any) {
           console.warn('⚠️ Could not save batch to KV (non-critical):', kvBatchError.message || kvBatchError)
