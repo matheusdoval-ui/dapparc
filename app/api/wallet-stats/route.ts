@@ -48,22 +48,19 @@ export async function GET(request: NextRequest) {
     // Convert from wei (18 decimals) to USDC display (6 decimals)
     const balanceUSDC = Number(balance) / 1e18
 
-    // Record wallet consultation for leaderboard (non-blocking)
-    // Only records if wallet was connected AND payment is verified
-    // Manual lookups (connected=false) are NOT added to leaderboard
-    // ARC Age will be calculated later if needed, for now pass null to avoid slow lookups
-    // Run in background to not block API response
-    recordWalletConsultation(normalizedAddress, txCount, null, connected)
-      .then((result) => {
-        if (result.recorded) {
-          console.log(`✅ Wallet consultation recorded to leaderboard: ${normalizedAddress}, TX: ${txCount}, Connected: ${connected}`)
-        } else {
-          console.log(`⛔ Wallet consultation not recorded: ${result.reason}`)
-        }
-      })
-      .catch((error) => {
-        console.error('Error recording wallet consultation (non-critical):', error)
-      })
+    // Record wallet consultation for leaderboard (must await so it persists before serverless exits)
+    // Only records if wallet was connected. Manual lookups (connected=false) are NOT added.
+    try {
+      const result = await recordWalletConsultation(normalizedAddress, txCount, null, connected)
+      if (result.recorded) {
+        console.log(`✅ Wallet consultation recorded to leaderboard: ${normalizedAddress}, TX: ${txCount}, Connected: ${connected}`)
+      } else {
+        console.log(`⛔ Wallet consultation not recorded: ${result.reason}`)
+      }
+    } catch (err) {
+      console.error('Error recording wallet consultation (non-critical):', err)
+      // Still return stats; don't fail the request
+    }
 
     // Return wallet statistics
     return NextResponse.json({

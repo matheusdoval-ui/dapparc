@@ -31,7 +31,11 @@ export default function LeaderboardPage() {
       }
 
       const data = await response.json()
-      setLeaderboard(data.leaderboard || [])
+      const raw = data.leaderboard || []
+      // Sort by transactions (desc) – rank = position
+      const sorted = [...raw].sort((a, b) => b.transactions - a.transactions)
+      const withRank = sorted.map((e, i) => ({ ...e, rank: i + 1 }))
+      setLeaderboard(withRank)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load leaderboard'
       setError(errorMessage)
@@ -158,8 +162,11 @@ export default function LeaderboardPage() {
               <p className="text-white/70 text-lg">
                 Ranking of the most active wallets on ARC Network
               </p>
+              <p className="text-arc-accent/80 text-sm mt-2 font-medium">
+                Ranked by number of transactions (most first)
+              </p>
               {leaderboard.length > 0 && (
-                <p className="text-arc-accent/80 text-sm mt-2 font-medium">
+                <p className="text-white/50 text-sm mt-1">
                   {leaderboard.length} {leaderboard.length === 1 ? 'wallet' : 'wallets'} tracked
                 </p>
               )}
@@ -182,11 +189,11 @@ export default function LeaderboardPage() {
                 To appear in the ARC Activity Leaderboard, you need to:
               </p>
               <ol className="list-decimal list-inside space-y-2 text-sm text-white/70 mb-4">
-                <li>Connect your wallet using MetaMask or Rabby Wallet</li>
-                <li>Your wallet will automatically appear in the ranking</li>
+                <li>Connect your wallet using MetaMask or Rabby Wallet on the home page</li>
+                <li>Your wallet is added automatically and ranked by <strong>number of transactions</strong> (higher = better rank)</li>
               </ol>
               <p className="text-xs text-white/50 mt-3 italic">
-                Note: Manual wallet lookups are not added to the leaderboard. Only connected wallets will appear. Your rank is preserved and will not be deleted.
+                Note: Manual wallet lookups are not added. Only connected wallets appear. Rank is by transaction count and is preserved.
               </p>
             </div>
           </div>
@@ -214,7 +221,7 @@ export default function LeaderboardPage() {
             </div>
             <p className="text-white/70 mb-2 text-lg font-medium">No leaderboard data available</p>
             <p className="text-white/60 text-sm">
-              The leaderboard will be populated when address tracking is implemented.
+              Connect your wallet on the home page to appear here. Entries are ranked by number of transactions.
             </p>
           </Card>
         ) : (

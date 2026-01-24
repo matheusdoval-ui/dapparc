@@ -218,18 +218,15 @@ if (globalThis.__walletStatsMap && globalThis.__walletStatsMap.size > 0) {
 
 /**
  * Record a wallet consultation
- * Only records to leaderboard if wallet is connected AND has paid the leaderboard fee
- * Manual lookups (isWalletConnected=false) are NOT added to leaderboard
+ * Only records to leaderboard if wallet is connected. Manual lookups are NOT added.
  */
 export async function recordWalletConsultation(
   address: string,
   transactionCount: number,
   arcAge: number | null,
-  isWalletConnected: boolean = false, // true if wallet was connected, false for manual lookup
-  isRegistered?: boolean // Optional: if not provided, will check registration
+  isWalletConnected: boolean = false
 ): Promise<{ recorded: boolean; reason?: string }> {
   try {
-    // Ensure storage is initialized
     await getStorage()
     
     const now = Date.now()
@@ -237,7 +234,6 @@ export async function recordWalletConsultation(
 
     console.log(`🔍 Recording consultation for: ${normalizedAddress}, TX: ${transactionCount}, Connected: ${isWalletConnected}`)
     
-    // Only add to leaderboard if wallet was connected (not manual lookup)
     if (!isWalletConnected) {
       console.log(`⛔ Manual lookup - not adding to leaderboard: ${normalizedAddress}`)
       return {
@@ -246,46 +242,8 @@ export async function recordWalletConsultation(
       }
     }
     
-    // If wallet is connected, it's eligible for leaderboard
-    // Registration on-chain is optional - if contract is deployed, we can check it
-    // but connecting the wallet is sufficient to appear in leaderboard
-    let registered = isRegistered
-    if (registered === undefined) {
-      // Only check registration if contract is deployed (optional check)
-      // If contract is not deployed or check fails, still allow connected wallets
-      try {
-        const { isWalletRegistered, REGISTRY_CONTRACT } = await import('@/lib/registration-verification')
-        // Only check if contract is deployed
-        if (REGISTRY_CONTRACT) {
-          registered = await Promise.race([
-            isWalletRegistered(normalizedAddress),
-            new Promise<boolean>((resolve) => {
-              setTimeout(() => {
-                console.warn(`⏱️ Registration verification timeout for ${normalizedAddress}, allowing anyway (connected wallet)`)
-                resolve(true) // Allow if timeout - wallet is connected
-              }, 10000) // 10 second timeout
-            })
-          ])
-        } else {
-          // No contract deployed - all connected wallets are eligible
-          registered = true
-        }
-      } catch (registrationError) {
-        console.warn(`⚠️ Registration verification error for ${normalizedAddress}, allowing anyway (connected wallet):`, registrationError)
-        registered = true // Default to true if error - wallet is connected
-      }
-    }
-    
-    // Connected wallets are always eligible (registration is optional enhancement)
-    if (!registered && isWalletConnected) {
-      // Even if not registered on-chain, if wallet is connected, allow it
-      // This ensures backward compatibility and that connecting is sufficient
-      console.log(`✅ Wallet ${normalizedAddress} is connected - adding to leaderboard (registration optional)`)
-      registered = true
-    }
-    
     console.log(`📦 Current map size before: ${walletStatsMap.size}`)
-    console.log(`✅ Wallet connected and eligible: ${normalizedAddress}`)
+    console.log(`✅ Wallet connected - adding to leaderboard: ${normalizedAddress}`)
 
     const existing = walletStatsMap.get(normalizedAddress)
     let walletToSave: WalletStats
