@@ -6,16 +6,31 @@
 // Dynamic import to avoid errors when KV is not configured
 let kv: any = null
 let kvModule: any = null
+let kvImportFailed = false
 
 async function getKv() {
   if (kv) return kv
+  if (kvImportFailed) return null
   
   try {
+    // Only try to import if KV env vars are set
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+      kvImportFailed = true
+      return null
+    }
+    
+    // Try to import @vercel/kv dynamically
     kvModule = await import('@vercel/kv')
-    kv = kvModule.kv
-    return kv
-  } catch (error) {
-    console.warn('⚠️ Could not import @vercel/kv:', error)
+    if (kvModule && kvModule.kv) {
+      kv = kvModule.kv
+      return kv
+    }
+    kvImportFailed = true
+    return null
+  } catch (error: any) {
+    // If import fails (package not installed or not available), mark as failed
+    kvImportFailed = true
+    console.warn('⚠️ Could not import @vercel/kv (package may not be installed):', error?.message || error)
     return null
   }
 }

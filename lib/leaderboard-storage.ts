@@ -122,17 +122,20 @@ async function initializeStorage(): Promise<Map<string, WalletStats>> {
   }
 
   // Priority 1: Try to load from Vercel KV (production)
+  // Only try if KV is available (has env vars)
   try {
-    const kvData = await loadFromKv()
-    if (kvData.size > 0) {
-      walletStatsMap = kvData
-      globalThis.__walletStatsMap = walletStatsMap
-      isInitialized = true
-      console.log(`📂 Loaded ${kvData.size} entries from Vercel KV`)
-      return walletStatsMap
+    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+      const kvData = await loadFromKv()
+      if (kvData.size > 0) {
+        walletStatsMap = kvData
+        globalThis.__walletStatsMap = walletStatsMap
+        isInitialized = true
+        console.log(`📂 Loaded ${kvData.size} entries from Vercel KV`)
+        return walletStatsMap
+      }
     }
   } catch (error: any) {
-    console.warn('⚠️ Could not load from KV, trying file:', error.message)
+    console.warn('⚠️ Could not load from KV, trying file:', error.message || error)
   }
 
   // Priority 2: Try to load from file (local development)
@@ -312,18 +315,20 @@ export async function recordWalletConsultation(
     // Always try to save immediately to ensure persistence
     // Try both KV and file - don't fail if one doesn't work
     
-    // Try to save to Vercel KV (non-blocking)
-    try {
-      await saveWalletToKv(normalizedAddress, walletToSave)
-      console.log(`💾 Wallet saved to Vercel KV: ${normalizedAddress}`)
-    } catch (kvError: any) {
-      console.warn('⚠️ Could not save to KV (non-critical):', kvError.message || kvError)
-      // Try batch save as fallback
+    // Try to save to Vercel KV (non-blocking, only if env vars are set)
+    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
       try {
-        await saveToKv(walletStatsMap)
-        console.log(`💾 All data saved to Vercel KV (batch)`)
-      } catch (kvBatchError: any) {
-        console.warn('⚠️ Could not save batch to KV (non-critical):', kvBatchError.message || kvBatchError)
+        await saveWalletToKv(normalizedAddress, walletToSave)
+        console.log(`💾 Wallet saved to Vercel KV: ${normalizedAddress}`)
+      } catch (kvError: any) {
+        console.warn('⚠️ Could not save to KV (non-critical):', kvError.message || kvError)
+        // Try batch save as fallback
+        try {
+          await saveToKv(walletStatsMap)
+          console.log(`💾 All data saved to Vercel KV (batch)`)
+        } catch (kvBatchError: any) {
+          console.warn('⚠️ Could not save batch to KV (non-critical):', kvBatchError.message || kvBatchError)
+        }
       }
     }
 
