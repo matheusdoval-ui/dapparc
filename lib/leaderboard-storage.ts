@@ -131,10 +131,9 @@ async function initializeStorage(): Promise<Map<string, WalletStats>> {
   // Load from file
   walletStatsMap = await loadFromFile()
   
-  // Store in globalThis for hot reload persistence
-  if (process.env.NODE_ENV !== 'production') {
-    globalThis.__walletStatsMap = walletStatsMap
-  }
+  // Store in globalThis for hot reload persistence (works in both dev and production)
+  // In production, this helps maintain data during function warm-up
+  globalThis.__walletStatsMap = walletStatsMap
   
   isInitialized = true
   return walletStatsMap
@@ -155,16 +154,20 @@ function getStorage(): Promise<Map<string, WalletStats>> {
 if (globalThis.__walletStatsMap) {
   walletStatsMap = globalThis.__walletStatsMap
   isInitialized = true
+  console.log(`📦 Using existing global storage (${walletStatsMap.size} entries)`)
 } else {
   walletStatsMap = new Map<string, WalletStats>()
   // Initialize asynchronously
   initializeStorage().then(map => {
     walletStatsMap = map
-    if (process.env.NODE_ENV !== 'production') {
-      globalThis.__walletStatsMap = walletStatsMap
-    }
+    // Store in globalThis for persistence (works in both dev and production)
+    globalThis.__walletStatsMap = walletStatsMap
+    console.log(`📦 Storage initialized with ${map.size} entries`)
   }).catch(err => {
-    console.error('Error initializing storage:', err)
+    console.error('❌ Error initializing storage:', err)
+    // Continue with empty map
+    walletStatsMap = new Map<string, WalletStats>()
+    globalThis.__walletStatsMap = walletStatsMap
   })
 }
 
@@ -266,17 +269,26 @@ export async function recordWalletConsultation(
     console.log(`📦 Current map size after: ${walletStatsMap.size}`)
     console.log(`📋 All addresses in map:`, Array.from(walletStatsMap.keys()))
 
-    // Save to file (debounced, non-blocking)
-    // In serverless environments, this may fail silently which is OK
-    saveToFile().catch(err => {
-      // Don't throw - file save is best effort
-      console.warn('⚠️ Could not save to file (non-critical):', err.message || err)
-    })
-    
-    // Also try immediate save in development to ensure persistence
-    if (process.env.NODE_ENV !== 'production') {
-      saveToFileImmediate().catch(err => {
-        console.warn('⚠️ Immediate save failed (non-critical):', err.message || err)
+    // Always try to save immediately to ensure persistence
+    // This is critical for data preservation
+    try {
+      await saveToFileImmediate()
+      console.log('💾 Data saved to file successfully')
+    } catch (err: any) {
+      // In serverless environments (Vercel), file system may be read-only
+      // This is expected - data will persist in memory during the function execution
+      // For production, consider using a database or external storage
+      if (err.code === 'EROFS' || err.code === 'EACCES') {
+        console.warn('⚠️ File system is read-only (serverless environment) - data persists in memory only')
+        console.warn('💡 Consider using a database (PostgreSQL, MongoDB) or Vercel KV for production persistence')
+      } else {
+        console.error('❌ Error saving to file:', err.message || err)
+        // Still continue - data is in memory
+      }
+      
+      // Also try debounced save as fallback
+      saveToFile().catch(saveErr => {
+        console.warn('⚠️ Debounced save also failed:', saveErr.message || saveErr)
       })
     }
     
