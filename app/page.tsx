@@ -1,25 +1,77 @@
+"use client"
+
 import { WalletCard } from "@/components/wallet-card"
-import { Github, Twitter } from "lucide-react"
+import { Github, Twitter, BookOpen, ExternalLink, Trophy } from "lucide-react"
+import { useState, useEffect } from "react"
 
 export default function Home() {
+  const [isTestnetActive, setIsTestnetActive] = useState(true)
+
+  useEffect(() => {
+    // Verificar status da testnet
+    const checkTestnetStatus = async () => {
+      try {
+        const response = await fetch('https://rpc.testnet.arc.network', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_blockNumber',
+            params: [],
+            id: 1
+          })
+        })
+        const data = await response.json()
+        setIsTestnetActive(data.result !== undefined)
+      } catch (error) {
+        setIsTestnetActive(false)
+      }
+    }
+
+    checkTestnetStatus()
+    // Verificar a cada 30 segundos
+    const interval = setInterval(checkTestnetStatus, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-black px-4 py-12 text-white">
       {/* Navigation */}
-      <nav className="absolute left-0 right-0 top-0 flex items-center justify-between px-6 py-4 sm:px-12">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
-            <span className="text-sm font-bold text-white">A</span>
-          </div>
-          <span className="text-lg font-semibold text-white">ARCtx</span>
-        </div>
+      <nav className="absolute left-0 right-0 top-0 flex items-center justify-end px-6 py-4 sm:px-12">
         <div className="flex items-center gap-4">
           <a
-            href="https://arctx.xyz"
+            href="/leaderboard"
+            className="text-sm text-white/70 transition-colors hover:text-white flex items-center gap-2"
+          >
+            <Trophy className="h-4 w-4" />
+            Leaderboard
+          </a>
+          <a
+            href="https://docs.arc.network/arc/references/contract-addresses"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-white/70 transition-colors hover:text-white"
+            className="text-sm text-white/70 transition-colors hover:text-white flex items-center gap-2"
           >
-            Live demo
+            <BookOpen className="h-4 w-4" />
+            Docs
+          </a>
+          <a
+            href="https://www.arc.network/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-white/70 transition-colors hover:text-white flex items-center gap-2"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Explorer
+          </a>
+          <a
+            href="https://github.com/matheusdoval-ui"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-white/70 transition-colors hover:text-white flex items-center gap-2"
+          >
+            <Github className="h-4 w-4" />
+            GitHub
           </a>
         </div>
       </nav>
@@ -30,10 +82,18 @@ export default function Home() {
         <header className="mb-12 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/40 opacity-80" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+              {isTestnetActive ? (
+                <>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500/40 opacity-80" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                </>
+              ) : (
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+              )}
             </span>
-            <span className="text-sm font-medium text-white/70">Testnet Live</span>
+            <span className="text-sm font-medium text-white/70">
+              {isTestnetActive ? 'Testnet Live' : 'Testnet Offline'}
+            </span>
           </div>
           <h1 className="text-balance text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl mb-2">
             ARCtx
@@ -68,22 +128,24 @@ export default function Home() {
         <p className="text-xs">Built on Arc Network testnet</p>
         <div className="flex items-center gap-4">
           <a
-            href="https://arctx.xyz"
+            href="https://github.com/matheusdoval-ui"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs transition-colors hover:text-white"
-            aria-label="ARCtx live"
+            className="text-xs transition-colors hover:text-white flex items-center gap-2"
+            aria-label="GitHub repository"
           >
-            Live demo
+            <Github className="h-4 w-4" />
+            <span>GitHub</span>
           </a>
           <a
             href="https://x.com/matheusdovalx"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs transition-colors hover:text-white"
+            className="text-xs transition-colors hover:text-white flex items-center gap-2"
             aria-label="Follow creator on X"
           >
             <Twitter className="h-4 w-4" />
+            <span>@matheusdovalx</span>
           </a>
         </div>
       </footer>

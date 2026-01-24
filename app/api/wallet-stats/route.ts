@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { JsonRpcProvider } from 'ethers'
+import { recordWalletConsultation } from '@/lib/leaderboard-storage'
 
 // ARC Testnet Configuration
 const ARC_RPC_URL = process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.network'
@@ -22,8 +23,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Validate Ethereum address format
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    // Validate Ethereum address format (case-insensitive)
+    const normalizedAddress = address.toLowerCase()
+    if (!/^0x[a-f0-9]{40}$/.test(normalizedAddress)) {
       return NextResponse.json(
         { error: 'Invalid Ethereum address format' },
         { status: 400 }
@@ -35,16 +37,25 @@ export async function GET(request: NextRequest) {
 
     // Get transaction count (nonce) which represents total interactions
     // This is the number of transactions sent from this address
-    const txCount = await provider.getTransactionCount(address, 'latest')
+    const txCount = await provider.getTransactionCount(normalizedAddress, 'latest')
 
     // Get USDC balance (native balance on Arc)
-    const balance = await provider.getBalance(address)
+    const balance = await provider.getBalance(normalizedAddress)
     // Convert from wei (18 decimals) to USDC display (6 decimals)
     const balanceUSDC = Number(balance) / 1e18
 
+    // Record wallet consultation for leaderboard
+    // ARC Age will be calculated later if needed, for now pass null to avoid slow lookups
+    try {
+      recordWalletConsultation(normalizedAddress, txCount, null)
+      console.log(`✅ Wallet consultation recorded: ${normalizedAddress}, TX: ${txCount}`)
+    } catch (error) {
+      console.error('Error recording wallet consultation:', error)
+    }
+
     // Return wallet statistics
     return NextResponse.json({
-      address: address,
+      address: normalizedAddress,
       txCount: txCount,
       balance: balanceUSDC,
       balanceFormatted: balanceUSDC.toFixed(2),

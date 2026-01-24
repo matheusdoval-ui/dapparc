@@ -196,7 +196,7 @@ export function InteractionLevelPopup({ isOpen, onClose, interactions }: Interac
   }, [isOpen])
 
   const handleShareToX = () => {
-    const tweetText = `I just checked my @ArcNetwork stats!
+    const tweetText = `I just checked my @arc stats!
 
 Level: ${levelInfo.title} (Lvl ${levelInfo.level})
 Transactions: ${interactions.toLocaleString()} TX

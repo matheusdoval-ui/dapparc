@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Wallet, Activity, Copy, Check, ExternalLink, Zap, Shield, Globe, AlertCircle, Coins, RefreshCw, Clock, TrendingUp } from "lucide-react"
+import { Wallet, Activity, Copy, Check, ExternalLink, Zap, Shield, Globe, AlertCircle, Coins, RefreshCw, Clock, TrendingUp, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CelebrationAnimation } from "@/components/celebration-animation"
@@ -37,6 +37,8 @@ export function WalletCard() {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([])
   const [manualAddress, setManualAddress] = useState("")
   const [manualLookupAddress, setManualLookupAddress] = useState<string | null>(null)
+  const [walletRank, setWalletRank] = useState<number | null>(null)
+  const [isLoadingRank, setIsLoadingRank] = useState(false)
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -64,7 +66,7 @@ export function WalletCard() {
       const estimatedCount = Math.max(0, Math.floor(currentTxCount * Math.pow(progress, 0.7 + growthRate * 0.3)))
       
       data.push({
-        date: date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }),
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         interactions: estimatedCount,
       })
     }
@@ -74,36 +76,42 @@ export function WalletCard() {
 
   // Fetch wallet statistics from API and register query as transaction
   const fetchWalletStats = useCallback(async (address: string, registerTransaction: boolean = true) => {
+    console.log('🔍 fetchWalletStats called with:', { address, registerTransaction })
     setIsLoadingStats(true)
     setIsRefreshing(true)
     setError(null)
 
     try {
+      // Validate address format
+      if (!address || !/^0x[a-fA-F0-9]{40}$/i.test(address)) {
+        throw new Error('Invalid wallet address format')
+      }
+
       // First, register the query as an on-chain transaction
       // This creates a transaction every time the wallet is queried
       if (registerTransaction) {
         try {
           setIsRegisteringTransaction(true)
-          console.log('📝 Registrando consulta como transação on-chain...')
+          console.log('📝 Registering query as on-chain transaction...')
           
           // Try to use contract if available, otherwise use self-transfer
           const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
           const txHash = await registerQueryAsTransaction(contractAddress)
           
-          console.log('✅ Transação criada:', txHash)
+          console.log('✅ Transaction created:', txHash)
           setLastTransactionHash(txHash)
           
           // Wait a bit for transaction to be included in a block
           await new Promise(resolve => setTimeout(resolve, 3000))
         } catch (txError: any) {
-          console.warn('⚠️ Não foi possível criar transação:', txError)
+          console.warn('⚠️ Could not create transaction:', txError)
           
           // If user rejected, don't show error - just continue
           if (txError.message && txError.message.includes('rejected')) {
-            console.log('Usuário rejeitou a transação - continuando sem registrar')
+            console.log('User rejected transaction - continuing without registering')
           } else {
             // For other errors, show warning but continue
-            console.warn('Transação não criada, mas continuando com a consulta')
+            console.warn('Transaction not created, but continuing with query')
           }
         } finally {
           setIsRegisteringTransaction(false)
@@ -111,24 +119,70 @@ export function WalletCard() {
       }
 
       // Then fetch wallet statistics (which will now include the new transaction)
-      const response = await fetch(`/api/wallet-stats?address=${address}`)
+      console.log('📡 Fetching wallet stats from API for:', address)
+      
+      // Normalize address to lowercase for consistency
+      const normalizedAddress = address.toLowerCase()
+      const apiUrl = `/api/wallet-stats?address=${encodeURIComponent(normalizedAddress)}`
+      console.log('🌐 API URL:', apiUrl)
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      console.log('📥 API Response status:', response.status, response.statusText)
       
       if (!response.ok) {
-        const errorData = await response.json()
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
+        }
+        console.error('❌ API Error:', errorData)
         throw new Error(errorData.error || 'Failed to fetch wallet statistics')
       }
 
       const data = await response.json()
+      console.log('✅ Wallet stats received:', data)
+      
+      // Validate response data
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response format from server')
+      }
+      
+      if (!data.address || typeof data.txCount !== 'number') {
+        console.error('❌ Invalid data structure:', data)
+        throw new Error('Missing required fields in response')
+      }
       
       const newWalletData = {
         address: data.address,
-        interactions: data.txCount,
-        balance: data.balance,
-        balanceFormatted: data.balanceFormatted,
-        lastUpdated: data.lastUpdated,
+        interactions: data.txCount || 0,
+        balance: data.balance ?? 0,
+        balanceFormatted: data.balanceFormatted || (data.balance ? data.balance.toFixed(2) : '0.00'),
+        lastUpdated: data.lastUpdated || new Date().toISOString(),
       }
       
+      console.log('💾 Setting wallet data:', newWalletData)
       setWalletData(newWalletData)
+
+      // Fetch wallet rank after getting stats
+      try {
+        setIsLoadingRank(true)
+        const rankResponse = await fetch(`/api/rank/${data.address}`)
+        if (rankResponse.ok) {
+          const rankData = await rankResponse.json()
+          setWalletRank(rankData.rank)
+        }
+      } catch (err) {
+        console.warn('Error fetching rank:', err)
+      } finally {
+        setIsLoadingRank(false)
+      }
 
       // Generate chart data (simulated growth over last 30 days)
       // In production, this could come from an API that tracks historical data
@@ -152,9 +206,10 @@ export function WalletCard() {
       setIsLoadingStats(false)
       setIsRefreshing(false)
     }
-  }, [])
+  }, [generateChartData])
 
   const handleConnect = useCallback(async () => {
+    console.log('🔍 handleConnect called')
     setIsConnecting(true)
     setError(null)
 
@@ -165,11 +220,14 @@ export function WalletCard() {
       }
 
       // Connect wallet and ensure correct network
+      console.log('📡 Connecting wallet...')
       const address = await connectWallet()
+      console.log('✅ Wallet connected:', address)
 
       // Verify network one more time
       const chainId = await getChainId()
       if (chainId !== 5042002) {
+        console.log('🔄 Switching to ARC Testnet...')
         await ensureArcTestnet()
       }
 
@@ -177,69 +235,55 @@ export function WalletCard() {
       setIsConnecting(false)
 
       // Fetch wallet statistics
+      console.log('📊 Fetching wallet statistics...')
       await fetchWalletStats(address)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet'
       setError(errorMessage)
       setIsConnecting(false)
-      console.error('Error connecting wallet:', err)
+      console.error('❌ Error connecting wallet:', err)
     }
   }, [fetchWalletStats])
 
   const handleManualLookup = useCallback(async () => {
+    console.log('🔍 handleManualLookup called with:', manualAddress)
     const trimmed = manualAddress.trim()
 
     if (!trimmed) {
-      setError('Digite um endereço de carteira válido para continuar.')
+      console.warn('⚠️ Empty address')
+      setError('Enter a valid wallet address to continue.')
       return
     }
 
-    const ethAddressPattern = /^0x[a-fA-F0-9]{40}$/
+    const ethAddressPattern = /^0x[a-fA-F0-9]{40}$/i
     if (!ethAddressPattern.test(trimmed)) {
-      setError('Cole um endereço com o formato 0x seguido de 40 caracteres hexadecimais.')
+      console.warn('⚠️ Invalid address format:', trimmed)
+      setError('Paste an address with format 0x followed by 40 hexadecimal characters.')
       return
     }
 
+    console.log('✅ Address validated, fetching stats...')
     setError(null)
     setManualLookupAddress(null)
     setIsConnected(false)
 
-    await fetchWalletStats(trimmed, false)
-    setManualLookupAddress(trimmed)
+    try {
+      await fetchWalletStats(trimmed, false)
+      setManualLookupAddress(trimmed)
+    } catch (err) {
+      console.error('❌ Error in handleManualLookup:', err)
+    }
   }, [manualAddress, fetchWalletStats])
 
-  // Check if wallet is already connected on mount
+  // Listen for account changes (but don't auto-connect)
   useEffect(() => {
-    const checkConnection = async () => {
-      if (!isWalletInstalled()) return
-
-      try {
-        const accounts = await getAccounts()
-        if (accounts && accounts.length > 0) {
-          const address = accounts[0]
-          // Verify network
-          const chainId = await getChainId()
-          if (chainId === 5042002) {
-            setIsConnected(true)
-            await fetchWalletStats(address)
-          }
-        }
-      } catch (error) {
-        // Silently fail - user not connected
-      }
-    }
-
-    checkConnection()
-
-    // Listen for account changes
     if (typeof window !== 'undefined' && window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length === 0) {
           setIsConnected(false)
           setWalletData(null)
-        } else {
-          handleConnect()
         }
+        // Don't auto-connect when accounts change
       }
 
       const handleChainChanged = () => {
@@ -254,7 +298,7 @@ export function WalletCard() {
         window.ethereum?.removeListener('chainChanged', handleChainChanged)
       }
     }
-  }, [fetchWalletStats, handleConnect])
+  }, [])
 
 
   const handleDisconnect = () => {
@@ -320,7 +364,7 @@ export function WalletCard() {
               </div>
 
               <p className="mb-6 text-center text-sm text-muted-foreground">
-                Conecte sua carteira ou cole um endereço para visualizar as interações on-chain de forma transparente.
+                Connect your wallet or paste an address to view on-chain interactions transparently.
               </p>
 
               {/* Error message */}
@@ -340,24 +384,24 @@ export function WalletCard() {
                 {isConnecting ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Conectando...
+                    Connecting...
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
                     <Wallet className="h-5 w-5" />
-                    Conectar carteira
+                    Connect Wallet
                   </span>
                 )}
               </Button>
 
               {/* Supported wallets hint */}
               <p className="mt-4 text-xs text-muted-foreground/60">
-                MetaMask ou Rabby Wallet • ARC Testnet
+                MetaMask or Rabby Wallet • ARC Testnet
               </p>
 
               <div className="mt-6 w-full space-y-3">
                 <p className="text-center text-xs text-muted-foreground/80">
-                  Ou cole um endereço ARC (0x...) para verificar interações sem precisar assinar transações.
+                  Or paste an ARC address (0x...) to check interactions without signing transactions.
                 </p>
                 <div className="flex w-full gap-3">
                   <Input
@@ -373,7 +417,7 @@ export function WalletCard() {
                     disabled={isLoadingStats || !manualAddress.trim()}
                     className="flex-shrink-0 rounded-xl bg-white/10 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/20 disabled:opacity-60"
                   >
-                    Verificar
+                    Check
                   </Button>
                 </div>
               </div>
@@ -388,11 +432,11 @@ export function WalletCard() {
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
                   </span>
                   <span className="text-sm font-medium text-green-400">
-                    {isConnected ? 'Conectado' : 'Consulta manual'}
+                    {isConnected ? 'Connected' : 'Manual lookup'}
                   </span>
                 </div>
                 <span className="text-xs text-muted-foreground/60">
-                  {isConnected ? 'Carteira ARC Testnet ativa' : 'Endereço analisado manualmente'}
+                  {isConnected ? 'ARC Testnet wallet active' : 'Address analyzed manually'}
                 </span>
               </div>
 
@@ -443,7 +487,7 @@ export function WalletCard() {
                       <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
                         <Clock className="h-3 w-3" />
                         <span>
-                          {new Date(walletData.lastUpdated).toLocaleTimeString('pt-BR', {
+                          {new Date(walletData.lastUpdated).toLocaleTimeString('en-US', {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
@@ -467,14 +511,28 @@ export function WalletCard() {
                     <Activity className="h-3.5 w-3.5 text-arc-accent" />
                     Total Interactions
                   </div>
-                  <button
-                    onClick={() => walletData && fetchWalletStats(walletData.address, false)}
-                    disabled={isRefreshing || isLoadingStats}
-                    className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent disabled:opacity-50"
-                    title="Refresh stats"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing || isLoadingStats ? 'animate-spin' : ''}`} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {walletRank !== null && (
+                      <a
+                        href="/leaderboard"
+                        className="flex items-center gap-1.5 rounded-full border border-arc-accent/30 bg-arc-accent/10 px-2.5 py-1 hover:bg-arc-accent/20 transition-colors"
+                        title="View full leaderboard"
+                      >
+                        <Trophy className="h-3 w-3 text-arc-accent" />
+                        <span className="text-xs font-semibold text-arc-accent">
+                          Rank #{walletRank}
+                        </span>
+                      </a>
+                    )}
+                    <button
+                      onClick={() => walletData && fetchWalletStats(walletData.address, false)}
+                      disabled={isRefreshing || isLoadingStats}
+                      className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent disabled:opacity-50"
+                      title="Refresh stats"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing || isLoadingStats ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
                 </div>
                 {isLoadingStats ? (
                   <div className="flex items-center justify-center py-8">
@@ -491,7 +549,7 @@ export function WalletCard() {
                       <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-4xl font-bold text-transparent">
                         {walletData?.interactions.toLocaleString() || 0}
                       </span>
-                      <span className="text-sm text-muted-foreground">transações</span>
+                      <span className="text-sm text-muted-foreground">transactions</span>
                     </div>
                     
                     {/* Growth Chart - Only show if we have data */}
@@ -559,7 +617,7 @@ export function WalletCard() {
                 variant="outline"
                 className="w-full rounded-xl border-white/10 bg-transparent py-5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
               >
-                {isConnected ? 'Desconectar carteira' : 'Limpar consulta'}
+                {isConnected ? 'Disconnect wallet' : 'Clear lookup'}
               </Button>
             </div>
           )}
