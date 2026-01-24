@@ -123,7 +123,7 @@ export function WalletCard() {
   }, [])
 
   // Fetch wallet statistics from API and register query as transaction
-  const fetchWalletStats = useCallback(async (address: string, registerTransaction: boolean = true) => {
+  const fetchWalletStats = useCallback(async (address: string, registerTransaction: boolean = true, isWalletConnected: boolean = false) => {
     console.log('🔍 fetchWalletStats called with:', { address, registerTransaction })
     
     // Set loading states immediately for better UX
@@ -169,11 +169,12 @@ export function WalletCard() {
       }
 
       // Then fetch wallet statistics (which will now include the new transaction)
-      console.log('📡 Fetching wallet stats from API for:', address)
+      console.log('📡 Fetching wallet stats from API for:', address, 'Connected:', isWalletConnected)
       
       // Normalize address to lowercase for consistency
       const normalizedAddress = address.toLowerCase()
-      const apiUrl = `/api/wallet-stats?address=${encodeURIComponent(normalizedAddress)}`
+      // Pass 'connected' parameter: true if wallet was connected, false/undefined for manual lookup
+      const apiUrl = `/api/wallet-stats?address=${encodeURIComponent(normalizedAddress)}&connected=${isWalletConnected}`
       console.log('🌐 API URL:', apiUrl)
       
       // Make API call immediately without delays
@@ -304,9 +305,9 @@ export function WalletCard() {
       setIsConnected(true)
       setIsConnecting(false)
 
-      // Fetch wallet statistics
+      // Fetch wallet statistics (wallet is connected, so pass isWalletConnected=true)
       console.log('📊 Fetching wallet statistics...')
-      await fetchWalletStats(address)
+      await fetchWalletStats(address, true, true) // registerTransaction=true, isWalletConnected=true
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to connect wallet'
       setError(errorMessage)
@@ -346,9 +347,9 @@ export function WalletCard() {
 
     try {
       console.log('✅ Address validated, fetching stats...')
-      console.log('📞 Calling fetchWalletStats with:', { address: trimmed, registerTransaction: false })
+      console.log('📞 Calling fetchWalletStats with:', { address: trimmed, registerTransaction: false, isWalletConnected: false })
       
-      await fetchWalletStats(trimmed, false)
+      await fetchWalletStats(trimmed, false, false) // registerTransaction=false, isWalletConnected=false (manual lookup)
       
       console.log('✅ fetchWalletStats completed successfully')
       setManualLookupAddress(trimmed)
@@ -732,7 +733,7 @@ export function WalletCard() {
                       </a>
                     )}
                     <button
-                      onClick={() => walletData && fetchWalletStats(walletData.address, false)}
+                      onClick={() => walletData && fetchWalletStats(walletData.address, false, isConnected)} // Use isConnected state
                       disabled={isRefreshing || isLoadingStats}
                       className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent disabled:opacity-50"
                       title="Refresh stats"

@@ -14,6 +14,7 @@ interface WalletStats {
   lastConsultedAt: number // timestamp
   consultCount: number
   arcAge: number | null // days since first transaction
+  hasPaidFee?: boolean // whether wallet has paid leaderboard fee
 }
 
 // File path for persistence
@@ -169,12 +170,14 @@ if (globalThis.__walletStatsMap) {
 
 /**
  * Record a wallet consultation
- * Only records if wallet has paid the leaderboard fee
+ * Only records to leaderboard if wallet is connected AND has paid the leaderboard fee
+ * Manual lookups (isWalletConnected=false) are NOT added to leaderboard
  */
 export async function recordWalletConsultation(
   address: string,
   transactionCount: number,
   arcAge: number | null,
+  isWalletConnected: boolean = false, // true if wallet was connected, false for manual lookup
   hasPaidFee?: boolean // Optional: if not provided, will check payment
 ): Promise<{ recorded: boolean; reason?: string }> {
   try {
@@ -184,17 +187,28 @@ export async function recordWalletConsultation(
     const now = Date.now()
     const normalizedAddress = address.toLowerCase()
 
-    console.log(`🔍 Recording consultation for: ${normalizedAddress}, TX: ${transactionCount}`)
+    console.log(`🔍 Recording consultation for: ${normalizedAddress}, TX: ${transactionCount}, Connected: ${isWalletConnected}`)
+    
+    // Only add to leaderboard if wallet was connected (not manual lookup)
+    if (!isWalletConnected) {
+      console.log(`⛔ Manual lookup - not adding to leaderboard: ${normalizedAddress}`)
+      return {
+        recorded: false,
+        reason: 'Manual lookups are not added to leaderboard. Connect your wallet to appear in the ranking.'
+      }
+    }
     
     // Check payment if not provided
     let paid = hasPaidFee
     if (paid === undefined) {
+      // Verify payment - this is required for leaderboard
       const { hasPaidLeaderboardFee } = await import('@/lib/payment-verification')
       paid = await hasPaidLeaderboardFee(normalizedAddress)
     }
     
+    // Only add to leaderboard if payment is verified
     if (!paid) {
-      console.log(`⛔ Wallet ${normalizedAddress} has not paid leaderboard fee - skipping`)
+      console.log(`⛔ Wallet ${normalizedAddress} has not paid leaderboard fee - not adding to leaderboard`)
       return {
         recorded: false,
         reason: 'Payment required: Send at least 1 USDC to 0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2 to appear in leaderboard'
@@ -202,6 +216,7 @@ export async function recordWalletConsultation(
     }
     
     console.log(`📦 Current map size before: ${walletStatsMap.size}`)
+    console.log(`💳 Payment verified for ${normalizedAddress}: Paid`)
 
     const existing = walletStatsMap.get(normalizedAddress)
 
@@ -211,6 +226,7 @@ export async function recordWalletConsultation(
       existing.lastConsultedAt = now
       existing.consultCount++
       existing.arcAge = arcAge
+      existing.hasPaidFee = true // Payment verified
       console.log(`📊 Updated wallet stats: ${normalizedAddress}, TX: ${transactionCount}, Consults: ${existing.consultCount}`)
     } else {
       // Create new entry
@@ -221,6 +237,7 @@ export async function recordWalletConsultation(
         lastConsultedAt: now,
         consultCount: 1,
         arcAge: arcAge,
+        hasPaidFee: true, // Payment verified
       })
       console.log(`🆕 New wallet added to leaderboard: ${normalizedAddress}, TX: ${transactionCount}`)
     }

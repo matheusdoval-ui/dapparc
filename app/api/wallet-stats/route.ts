@@ -8,12 +8,16 @@ const ARC_CHAIN_ID = 5042002
 
 /**
  * API endpoint to fetch wallet statistics from ARC Testnet
- * GET /api/wallet-stats?address=0x...
+ * GET /api/wallet-stats?address=0x...&connected=true
+ * 
+ * @param address - Wallet address to check
+ * @param connected - Whether wallet was connected (true) or manual lookup (false/undefined)
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const address = searchParams.get('address')
+    const connected = searchParams.get('connected') === 'true' // Only true if explicitly passed
 
     // Validate address parameter
     if (!address) {
@@ -44,12 +48,14 @@ export async function GET(request: NextRequest) {
     // Convert from wei (18 decimals) to USDC display (6 decimals)
     const balanceUSDC = Number(balance) / 1e18
 
-    // Record wallet consultation for leaderboard (only if payment verified)
+    // Record wallet consultation for leaderboard
+    // Only records if wallet was connected AND payment is verified
+    // Manual lookups (connected=false) are NOT added to leaderboard
     // ARC Age will be calculated later if needed, for now pass null to avoid slow lookups
     try {
-      const result = await recordWalletConsultation(normalizedAddress, txCount, null)
+      const result = await recordWalletConsultation(normalizedAddress, txCount, null, connected)
       if (result.recorded) {
-        console.log(`✅ Wallet consultation recorded: ${normalizedAddress}, TX: ${txCount}`)
+        console.log(`✅ Wallet consultation recorded to leaderboard: ${normalizedAddress}, TX: ${txCount}, Connected: ${connected}`)
       } else {
         console.log(`⛔ Wallet consultation not recorded: ${result.reason}`)
       }
