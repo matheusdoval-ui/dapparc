@@ -1,11 +1,12 @@
 /**
  * Persistent storage for leaderboard data
- * Uses file system to persist data between server restarts
- * In production, consider using a database (PostgreSQL, MongoDB, etc.)
+ * Uses Vercel KV (Redis) for production persistence
+ * Falls back to file system for local development
  */
 
 import { promises as fs } from 'fs'
 import { join } from 'path'
+import { loadFromKv, saveToKv, saveWalletToKv } from './leaderboard-storage-kv'
 
 interface WalletStats {
   address: string
@@ -113,14 +114,28 @@ async function saveToFile(): Promise<void> {
 }
 
 /**
- * Initialize storage (load from file or use existing in-memory)
+ * Initialize storage (load from KV, file, or use existing in-memory)
  */
 async function initializeStorage(): Promise<Map<string, WalletStats>> {
   if (isInitialized && walletStatsMap && walletStatsMap.size > 0) {
     return walletStatsMap
   }
 
-  // Always try to load from file first (most reliable source of truth)
+  // Priority 1: Try to load from Vercel KV (production)
+  try {
+    const kvData = await loadFromKv()
+    if (kvData.size > 0) {
+      walletStatsMap = kvData
+      globalThis.__walletStatsMap = walletStatsMap
+      isInitialized = true
+      console.log(`📂 Loaded ${kvData.size} entries from Vercel KV`)
+      return walletStatsMap
+    }
+  } catch (error: any) {
+    console.warn('⚠️ Could not load from KV, trying file:', error.message)
+  }
+
+  // Priority 2: Try to load from file (local development)
   try {
     const fileData = await loadFromFile()
     if (fileData.size > 0) {
@@ -128,13 +143,22 @@ async function initializeStorage(): Promise<Map<string, WalletStats>> {
       globalThis.__walletStatsMap = walletStatsMap
       isInitialized = true
       console.log(`📂 Loaded ${fileData.size} entries from file`)
+      
+      // Sync to KV if available (migrate from file to KV)
+      try {
+        await saveToKv(walletStatsMap)
+        console.log('✅ Synced file data to Vercel KV')
+      } catch (kvError) {
+        console.warn('⚠️ Could not sync to KV:', kvError)
+      }
+      
       return walletStatsMap
     }
   } catch (error: any) {
     console.warn('⚠️ Could not load from file, trying globalThis:', error.message)
   }
 
-  // Fallback: Check if we have data in globalThis (hot reload in development or warm-up)
+  // Priority 3: Check if we have data in globalThis (hot reload in development or warm-up)
   if (globalThis.__walletStatsMap && globalThis.__walletStatsMap.size > 0) {
     walletStatsMap = globalThis.__walletStatsMap
     isInitialized = true
@@ -256,6 +280,7 @@ export async function recordWalletConsultation(
     console.log(`✅ Wallet connected and eligible: ${normalizedAddress}`)
 
     const existing = walletStatsMap.get(normalizedAddress)
+    let walletToSave: WalletStats
 
     if (existing) {
       // Update existing entry
@@ -264,10 +289,11 @@ export async function recordWalletConsultation(
       existing.consultCount++
       existing.arcAge = arcAge
       existing.hasPaidFee = true // Keep for backward compatibility, but now means "registered"
+      walletToSave = existing
       console.log(`📊 Updated wallet stats: ${normalizedAddress}, TX: ${transactionCount}, Consults: ${existing.consultCount}`)
     } else {
       // Create new entry
-      walletStatsMap.set(normalizedAddress, {
+      walletToSave = {
         address: normalizedAddress,
         transactions: transactionCount,
         firstConsultedAt: now,
@@ -275,7 +301,8 @@ export async function recordWalletConsultation(
         consultCount: 1,
         arcAge: arcAge,
         hasPaidFee: true, // Keep for backward compatibility, but now means "registered"
-      })
+      }
+      walletStatsMap.set(normalizedAddress, walletToSave)
       console.log(`🆕 New wallet added to leaderboard: ${normalizedAddress}, TX: ${transactionCount}`)
     }
 
@@ -283,33 +310,45 @@ export async function recordWalletConsultation(
     console.log(`📋 All addresses in map:`, Array.from(walletStatsMap.keys()))
 
     // Always try to save immediately to ensure persistence
-    // This is critical for data preservation
+    // Priority: Vercel KV (production) > File (local dev) > globalThis (memory)
+    let saved = false
+
+    // Priority 1: Save individual wallet to Vercel KV (faster for single updates)
     try {
-      await saveToFileImmediate()
-      console.log(`💾 Data saved to file successfully (${walletStatsMap.size} entries)`)
+      await saveWalletToKv(normalizedAddress, walletToSave)
+      console.log(`💾 Wallet saved to Vercel KV: ${normalizedAddress}`)
+      saved = true
+    } catch (kvError: any) {
+      console.warn('⚠️ Could not save individual wallet to KV:', kvError.message || kvError)
       
-      // Also update globalThis to ensure it's in sync
-      globalThis.__walletStatsMap = walletStatsMap
-    } catch (err: any) {
-      // In serverless environments (Vercel), file system may be read-only
-      // This is expected - data will persist in memory during the function execution
-      // For production, consider using a database or external storage
-      if (err.code === 'EROFS' || err.code === 'EACCES') {
-        console.warn('⚠️ File system is read-only (serverless environment) - data persists in memory only')
-        console.warn('💡 Consider using a database (PostgreSQL, MongoDB) or Vercel KV for production persistence')
-        // Still update globalThis even if file save fails
-        globalThis.__walletStatsMap = walletStatsMap
-      } else {
-        console.error('❌ Error saving to file:', err.message || err)
-        // Still continue - data is in memory and globalThis
-        globalThis.__walletStatsMap = walletStatsMap
+      // Fallback: Try to save all data to KV
+      try {
+        await saveToKv(walletStatsMap)
+        console.log(`💾 All data saved to Vercel KV successfully (${walletStatsMap.size} entries)`)
+        saved = true
+      } catch (kvBatchError: any) {
+        console.warn('⚠️ Could not save batch to KV:', kvBatchError.message || kvBatchError)
       }
-      
-      // Also try debounced save as fallback
-      saveToFile().catch(saveErr => {
-        console.warn('⚠️ Debounced save also failed:', saveErr.message || saveErr)
-      })
     }
+
+    // Priority 2: Save to file (local development fallback)
+    if (!saved) {
+      try {
+        await saveToFileImmediate()
+        console.log(`💾 Data saved to file successfully (${walletStatsMap.size} entries)`)
+        saved = true
+      } catch (err: any) {
+        // In serverless environments (Vercel), file system may be read-only
+        if (err.code === 'EROFS' || err.code === 'EACCES') {
+          console.warn('⚠️ File system is read-only (serverless environment)')
+        } else {
+          console.error('❌ Error saving to file:', err.message || err)
+        }
+      }
+    }
+
+    // Always update globalThis to ensure it's in sync
+    globalThis.__walletStatsMap = walletStatsMap
     
     console.log('✅ Wallet consultation recorded successfully')
     return { recorded: true }
