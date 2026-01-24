@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Activity, Calendar, Trophy, ExternalLink, RefreshCw, Sparkles, Crown, Copy } from "lucide-react"
+import { Activity, Calendar, Trophy, ExternalLink, RefreshCw, Sparkles, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
@@ -183,26 +183,9 @@ export default function LeaderboardPage() {
               </p>
               <ol className="list-decimal list-inside space-y-2 text-sm text-white/70 mb-4">
                 <li>Connect your wallet using MetaMask or Rabby Wallet</li>
-                <li>Send at least <strong className="text-arc-accent">0.1 ARC</strong> to the developer wallet</li>
+                <li>Send at least <strong className="text-arc-accent">0.5 USDC or EURC</strong> to the developer wallet</li>
                 <li>Your wallet will automatically appear in the ranking</li>
               </ol>
-              <div className="bg-black/30 rounded-lg p-3 mt-4">
-                <p className="text-xs text-white/60 mb-2">Developer Wallet Address:</p>
-                <div className="flex items-center gap-2">
-                  <code className="text-xs bg-black/50 px-3 py-1.5 rounded font-mono text-arc-accent">
-                    0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText('0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2')
-                    }}
-                    className="text-arc-accent/70 hover:text-arc-accent transition-colors"
-                    title="Copy address"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
               <p className="text-xs text-white/50 mt-3 italic">
                 Note: Manual wallet lookups are not added to the leaderboard. Only connected wallets that have paid the fee will appear.
               </p>

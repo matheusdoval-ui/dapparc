@@ -487,7 +487,7 @@ export function WalletCard() {
                     <div className="flex-1">
                       <p className="font-semibold mb-1">Leaderboard Access Required</p>
                       <p className="text-xs text-yellow-300/80 mb-2">
-                        To appear in the leaderboard, you need to connect your wallet and send at least <strong>0.1 ARC</strong> to:
+                        To appear in the leaderboard, you need to connect your wallet and send at least <strong>0.5 USDC or EURC</strong> to:
                       </p>
                       <div className="flex items-center gap-2 mb-2">
                         <code className="text-xs bg-black/30 px-2 py-1 rounded font-mono">

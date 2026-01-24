@@ -11,9 +11,15 @@ const ARC_RPC_URL = process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.network'
 // Developer wallet address (recipient of payment)
 export const DEVELOPER_WALLET = '0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2'.toLowerCase()
 
-// Minimum payment required: 0.1 ARC (native token on ARC, so 0.1 * 1e18 wei)
-// This is a fair fee for leaderboard access
-const MINIMUM_PAYMENT_WEI = BigInt('100000000000000000') // 0.1 ARC = 0.1 * 1e18 wei
+// Token contract addresses (USDC and EURC on ARC Testnet)
+const USDC_CONTRACT = '0x3910B7cbb3341f1F4bF4cEB66e4A2C8f204FE2b8'.toLowerCase()
+const EURC_CONTRACT = '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a'.toLowerCase()
+
+// Minimum payment required: 0.5 USDC or EURC (6 decimals, so 0.5 * 1e6)
+const MINIMUM_PAYMENT_AMOUNT = BigInt('500000') // 0.5 * 10^6 = 500000 (6 decimals)
+
+// ERC-20 Transfer event signature: Transfer(address,address,uint256)
+const TRANSFER_EVENT_SIGNATURE = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
 
 // Cache for payment verification (to avoid repeated RPC calls)
 const paymentCache = new Map<string, { paid: boolean; timestamp: number }>()
@@ -39,121 +45,71 @@ export async function hasPaidLeaderboardFee(walletAddress: string): Promise<bool
     // Get the latest block number
     const latestBlock = await provider.getBlockNumber()
     
-    // Check last 1000 blocks for transactions (approximately last few hours)
-    // This is a reasonable range for testnet activity
-    const blocksToCheck = Math.min(1000, latestBlock)
-    const startBlock = Math.max(0, latestBlock - blocksToCheck)
-    
-    console.log(`🔍 Checking payment for ${normalizedAddress} from block ${startBlock} to ${latestBlock}`)
-    
-    // Get all transactions sent from this wallet
-    // We'll check if any transaction sent at least 1 USDC to developer wallet
-    let hasPaid = false
-    
-    // Check recent transactions by getting transaction history
-    // Since we can't easily query all transactions, we'll use a different approach:
-    // Check the balance difference or use event logs
-    
-    // Alternative approach: Check if there's a direct transfer
-    // We'll check the last 100 transactions from this address
-    // by looking at transaction receipts
-    
-    // For now, let's use a simpler approach: check if the wallet has sent
-    // a transaction with value >= 1 USDC to the developer address
-    // by querying transaction history via block scanning
-    
-    // Get transaction count to know how many transactions to check
-    const txCount = await provider.getTransactionCount(normalizedAddress, 'latest')
-    
-    // If wallet has no transactions, it hasn't paid
-    if (txCount === 0) {
-      console.log(`❌ Wallet ${normalizedAddress} has no transactions`)
-      paymentCache.set(normalizedAddress, { paid: false, timestamp: Date.now() })
-      return false
-    }
-    
-    // More efficient approach: Use eth_getLogs to find transactions
-    // Check last 1000 blocks for transactions from wallet to developer
-    const blocksToScan = 1000
+    // Check last 5000 blocks for token transfers (approximately last few days)
+    const blocksToScan = Math.min(5000, latestBlock)
     const scanStartBlock = Math.max(0, latestBlock - blocksToScan)
     
-    console.log(`🔍 Checking payment: scanning blocks ${scanStartBlock} to ${latestBlock}`)
+    console.log(`🔍 Checking payment for ${normalizedAddress} from block ${scanStartBlock} to ${latestBlock}`)
     
-    // Use eth_getLogs to find transactions more efficiently
-    // This is faster than scanning individual blocks
-    try {
-      const logs = await provider.send('eth_getLogs', [{
-        fromBlock: `0x${scanStartBlock.toString(16)}`,
-        toBlock: 'latest',
-        address: DEVELOPER_WALLET,
-        topics: [
-          null, // Any event
-          `0x${normalizedAddress.slice(2).padStart(64, '0')}`, // from address (indexed)
-        ]
-      }])
+    let hasPaid = false
+    
+    // Check both USDC and EURC token contracts
+    const tokenContracts = [
+      { address: USDC_CONTRACT, name: 'USDC' },
+      { address: EURC_CONTRACT, name: 'EURC' }
+    ]
+    
+    // Pad addresses for topic filtering (32 bytes, 64 hex chars)
+    const fromAddressTopic = `0x${normalizedAddress.slice(2).padStart(64, '0')}`
+    const toAddressTopic = `0x${DEVELOPER_WALLET.slice(2).padStart(64, '0')}`
+    
+    // Check each token contract
+    for (const token of tokenContracts) {
+      if (hasPaid) break
       
-      // Check if any log represents a payment
-      // For native transfers, we need to check transaction receipts
-      if (logs && Array.isArray(logs) && logs.length > 0) {
-        // Check transaction receipts for these logs
-        for (const log of logs.slice(0, 10)) { // Check first 10 matches
-          try {
-            const receipt = await provider.getTransactionReceipt(log.transactionHash)
-            if (receipt) {
-              const tx = await provider.getTransaction(log.transactionHash)
-              if (tx && 
-                  tx.from?.toLowerCase() === normalizedAddress &&
-                  tx.to?.toLowerCase() === DEVELOPER_WALLET &&
-                  tx.value >= MINIMUM_PAYMENT_WEI) {
-                console.log(`✅ Found payment in tx ${log.transactionHash}: ${tx.value.toString()} wei`)
+      try {
+        console.log(`🔍 Checking ${token.name} transfers from ${normalizedAddress} to ${DEVELOPER_WALLET}`)
+        
+        // Query Transfer events: Transfer(address indexed from, address indexed to, uint256 value)
+        const logs = await provider.send('eth_getLogs', [{
+          fromBlock: `0x${scanStartBlock.toString(16)}`,
+          toBlock: 'latest',
+          address: token.address,
+          topics: [
+            TRANSFER_EVENT_SIGNATURE, // Transfer event signature
+            fromAddressTopic,          // from address (indexed)
+            toAddressTopic,            // to address (indexed)
+          ]
+        }])
+        
+        if (logs && Array.isArray(logs) && logs.length > 0) {
+          console.log(`📋 Found ${logs.length} ${token.name} Transfer event(s)`)
+          
+          // Check each transfer event
+          for (const log of logs) {
+            try {
+              // Decode the value from the data field (last 32 bytes)
+              // Transfer event data is just the value (uint256)
+              const valueHex = log.data || '0x0'
+              const value = BigInt(valueHex)
+              
+              console.log(`💰 ${token.name} transfer amount: ${value.toString()} (${Number(value) / 1e6} ${token.name})`)
+              
+              if (value >= MINIMUM_PAYMENT_AMOUNT) {
+                console.log(`✅ Found valid payment: ${Number(value) / 1e6} ${token.name} in tx ${log.transactionHash}`)
                 hasPaid = true
                 break
               }
-            }
-          } catch (err) {
-            continue
-          }
-        }
-      }
-    } catch (logsError) {
-      console.warn('⚠️ eth_getLogs failed, falling back to block scanning:', logsError)
-      
-      // Fallback: Check recent blocks (last 200 blocks for speed)
-      const fallbackBlocks = 200
-      const fallbackStart = Math.max(0, latestBlock - fallbackBlocks)
-      
-      for (let blockNum = latestBlock; blockNum >= fallbackStart && !hasPaid; blockNum--) {
-        try {
-          const block = await provider.getBlock(blockNum, true)
-          if (block && block.transactions) {
-            // Check first 50 transactions in block
-            const txHashes = Array.isArray(block.transactions) 
-              ? block.transactions.slice(0, 50)
-              : []
-            
-            for (const txHash of txHashes) {
-              try {
-                const tx = typeof txHash === 'string' 
-                  ? await provider.getTransaction(txHash)
-                  : txHash
-                
-                if (tx && 
-                    tx.from?.toLowerCase() === normalizedAddress &&
-                    tx.to?.toLowerCase() === DEVELOPER_WALLET &&
-                    tx.value >= MINIMUM_PAYMENT_WEI) {
-                  console.log(`✅ Found payment in block ${blockNum}`)
-                  hasPaid = true
-                  break
-                }
-              } catch {
-                continue
-              }
+            } catch (err) {
+              console.warn(`⚠️ Error decoding transfer log:`, err)
+              continue
             }
           }
-        } catch {
-          continue
         }
-        if (hasPaid) break
+      } catch (tokenError: any) {
+        console.warn(`⚠️ Error checking ${token.name} transfers:`, tokenError.message || tokenError)
+        // Continue checking other tokens
+        continue
       }
     }
     

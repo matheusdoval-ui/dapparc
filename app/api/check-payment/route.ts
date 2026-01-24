@@ -31,10 +31,10 @@ export async function GET(request: NextRequest) {
       address: normalizedAddress,
       hasPaid,
       developerWallet: DEVELOPER_WALLET,
-      minimumPayment: '0.1 ARC',
+      minimumPayment: '0.5 USDC or EURC',
       message: hasPaid 
         ? 'Payment verified. Wallet is eligible for leaderboard.'
-        : 'Payment required. Send at least 0.1 ARC to the developer wallet to appear in leaderboard.'
+        : 'Payment required. Send at least 0.5 USDC or EURC to the developer wallet to appear in leaderboard.'
     })
   } catch (error) {
     console.error('Error checking payment:', error)
