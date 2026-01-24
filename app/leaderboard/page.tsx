@@ -184,7 +184,6 @@ export default function LeaderboardPage() {
               <ol className="list-decimal list-inside space-y-2 text-sm text-white/70 mb-4">
                 <li>Connect your wallet using MetaMask or Rabby Wallet</li>
                 <li>Your wallet will automatically appear in the ranking</li>
-                <li>Optional: Register on-chain by calling <strong className="text-arc-accent">register()</strong> on the LeaderboardRegistry contract for enhanced tracking</li>
               </ol>
               <p className="text-xs text-white/50 mt-3 italic">
                 Note: Manual wallet lookups are not added to the leaderboard. Only connected wallets will appear. Your rank is preserved and will not be deleted.

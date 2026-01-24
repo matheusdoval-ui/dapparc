@@ -488,59 +488,6 @@ export function WalletCard() {
                 </div>
               )}
 
-              {/* Optional registration notice */}
-              {isRegistered === false && walletData && process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS && (
-                <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-400">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-semibold mb-1">Optional: On-Chain Registration</p>
-                      <p className="text-xs text-blue-300/80 mb-2">
-                        Your wallet is already in the leaderboard! You can optionally register on-chain for enhanced tracking. This is a simple transaction that proves real usage.
-                      </p>
-                      <Button
-                        onClick={async () => {
-                          if (!walletData?.address) return
-                          const registryAddress = process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS
-                          if (!registryAddress) {
-                            setError('Registry contract address not configured')
-                            return
-                          }
-                          try {
-                            setIsRegistering(true)
-                            setError(null)
-                            const txHash = await registerForLeaderboard(registryAddress)
-                            console.log('✅ Registration transaction sent:', txHash)
-                            // Wait a bit for transaction to be mined
-                            await new Promise(resolve => setTimeout(resolve, 3000))
-                            // Refresh registration status
-                            const registrationResponse = await fetch(`/api/check-registration?address=${encodeURIComponent(walletData.address)}`)
-                            if (registrationResponse.ok) {
-                              const registrationData = await registrationResponse.json()
-                              setIsRegistered(registrationData.isRegistered)
-                            }
-                          } catch (err: any) {
-                            if (err.message && err.message.includes('rejected')) {
-                              setError('Transaction rejected')
-                            } else {
-                              setError(err.message || 'Failed to register')
-                            }
-                          } finally {
-                            setIsRegistering(false)
-                          }
-                        }}
-                        disabled={isRegistering}
-                        className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        {isRegistering ? 'Registering...' : 'Register On-Chain (Optional)'}
-                      </Button>
-                      <p className="text-xs text-blue-300/60 italic mt-2">
-                        Note: Your wallet is already in the leaderboard. Registration is optional for enhanced tracking.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
               
               <Button
                 onClick={handleConnect}
