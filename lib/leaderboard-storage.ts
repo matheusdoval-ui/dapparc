@@ -61,6 +61,38 @@ async function loadFromFile(): Promise<Map<string, WalletStats>> {
 }
 
 /**
+ * Save data to file immediately (synchronous save)
+ */
+async function saveToFileImmediate(): Promise<void> {
+  try {
+    // Ensure data directory exists
+    await fs.mkdir(DATA_DIR, { recursive: true })
+    
+    // Convert Map to object for JSON serialization
+    const data: Record<string, WalletStats> = {}
+    walletStatsMap.forEach((value, key) => {
+      data[key] = value
+    })
+    
+    // Write to file atomically (write to temp file then rename)
+    const tempFile = `${DATA_FILE}.tmp`
+    await fs.writeFile(tempFile, JSON.stringify(data, null, 2), 'utf-8')
+    await fs.rename(tempFile, DATA_FILE)
+    
+    console.log(`💾 Saved ${walletStatsMap.size} wallet stats to file: ${DATA_FILE}`)
+  } catch (error: any) {
+    // In production (Vercel), file system may be read-only
+    // This is expected and we should log but not fail
+    if (error.code === 'EROFS' || error.code === 'EACCES') {
+      console.warn('⚠️ File system is read-only (serverless environment), data will persist in memory only')
+    } else {
+      console.error('❌ Error saving data file:', error)
+      throw error
+    }
+  }
+}
+
+/**
  * Save data to file (with debouncing)
  */
 async function saveToFile(): Promise<void> {
@@ -72,25 +104,7 @@ async function saveToFile(): Promise<void> {
 
     // Debounce: wait 1 second before saving to avoid too many writes
     globalThis.__saveTimeout = setTimeout(async () => {
-      try {
-        // Ensure data directory exists
-        await fs.mkdir(DATA_DIR, { recursive: true })
-        
-        // Convert Map to object for JSON serialization
-        const data: Record<string, WalletStats> = {}
-        walletStatsMap.forEach((value, key) => {
-          data[key] = value
-        })
-        
-        // Write to file atomically (write to temp file then rename)
-        const tempFile = `${DATA_FILE}.tmp`
-        await fs.writeFile(tempFile, JSON.stringify(data, null, 2), 'utf-8')
-        await fs.rename(tempFile, DATA_FILE)
-        
-        console.log(`💾 Saved ${walletStatsMap.size} wallet stats to file`)
-      } catch (error) {
-        console.error('❌ Error saving data file:', error)
-      }
+      await saveToFileImmediate()
     }, 1000)
   } catch (error) {
     console.error('❌ Error scheduling save:', error)
@@ -155,12 +169,14 @@ if (globalThis.__walletStatsMap) {
 
 /**
  * Record a wallet consultation
+ * Only records if wallet has paid the leaderboard fee
  */
 export async function recordWalletConsultation(
   address: string,
   transactionCount: number,
-  arcAge: number | null
-): Promise<void> {
+  arcAge: number | null,
+  hasPaidFee?: boolean // Optional: if not provided, will check payment
+): Promise<{ recorded: boolean; reason?: string }> {
   try {
     // Ensure storage is initialized
     await getStorage()
@@ -169,6 +185,22 @@ export async function recordWalletConsultation(
     const normalizedAddress = address.toLowerCase()
 
     console.log(`🔍 Recording consultation for: ${normalizedAddress}, TX: ${transactionCount}`)
+    
+    // Check payment if not provided
+    let paid = hasPaidFee
+    if (paid === undefined) {
+      const { hasPaidLeaderboardFee } = await import('@/lib/payment-verification')
+      paid = await hasPaidLeaderboardFee(normalizedAddress)
+    }
+    
+    if (!paid) {
+      console.log(`⛔ Wallet ${normalizedAddress} has not paid leaderboard fee - skipping`)
+      return {
+        recorded: false,
+        reason: 'Payment required: Send at least 1 USDC to 0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2 to appear in leaderboard'
+      }
+    }
+    
     console.log(`📦 Current map size before: ${walletStatsMap.size}`)
 
     const existing = walletStatsMap.get(normalizedAddress)
@@ -196,10 +228,24 @@ export async function recordWalletConsultation(
     console.log(`📦 Current map size after: ${walletStatsMap.size}`)
     console.log(`📋 All addresses in map:`, Array.from(walletStatsMap.keys()))
 
-    // Save to file (debounced)
-    await saveToFile()
+    // Save to file (debounced, non-blocking)
+    // In serverless environments, this may fail silently which is OK
+    saveToFile().catch(err => {
+      // Don't throw - file save is best effort
+      console.warn('⚠️ Could not save to file (non-critical):', err.message || err)
+    })
+    
+    // Also try immediate save in development to ensure persistence
+    if (process.env.NODE_ENV !== 'production') {
+      saveToFileImmediate().catch(err => {
+        console.warn('⚠️ Immediate save failed (non-critical):', err.message || err)
+      })
+    }
+    
+    console.log('✅ Wallet consultation recorded successfully')
+    return { recorded: true }
   } catch (error) {
-    console.error('Error in recordWalletConsultation:', error)
+    console.error('❌ Error in recordWalletConsultation:', error)
     throw error
   }
 }

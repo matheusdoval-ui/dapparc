@@ -44,6 +44,8 @@ export function WalletCard() {
     isValid: boolean
     message: string
   } | null>(null)
+  const [hasPaidFee, setHasPaidFee] = useState<boolean | null>(null)
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false)
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -186,9 +188,12 @@ export function WalletCard() {
       console.log('📥 API Response status:', response.status, response.statusText)
       
       if (!response.ok) {
+        // Try to get error message from response
         let errorData
         try {
-          errorData = await response.json()
+          const responseText = await response.clone().text()
+          console.error('❌ API Error Response body:', responseText)
+          errorData = JSON.parse(responseText)
         } catch {
           errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
         }
@@ -219,6 +224,21 @@ export function WalletCard() {
       
       console.log('💾 Setting wallet data:', newWalletData)
       setWalletData(newWalletData)
+
+      // Check payment status for leaderboard
+      try {
+        setIsCheckingPayment(true)
+        const paymentResponse = await fetch(`/api/check-payment?address=${encodeURIComponent(data.address)}`)
+        if (paymentResponse.ok) {
+          const paymentData = await paymentResponse.json()
+          setHasPaidFee(paymentData.hasPaid)
+          console.log('💳 Payment status:', paymentData.hasPaid ? 'Paid' : 'Not paid')
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not check payment status:', err)
+      } finally {
+        setIsCheckingPayment(false)
+      }
 
       // Fetch wallet rank after getting stats
       try {
@@ -326,7 +346,11 @@ export function WalletCard() {
 
     try {
       console.log('✅ Address validated, fetching stats...')
+      console.log('📞 Calling fetchWalletStats with:', { address: trimmed, registerTransaction: false })
+      
       await fetchWalletStats(trimmed, false)
+      
+      console.log('✅ fetchWalletStats completed successfully')
       setManualLookupAddress(trimmed)
       // Don't clear input - let user see what they searched
       // setManualAddress('')
@@ -335,8 +359,10 @@ export function WalletCard() {
       console.error('❌ Error in handleManualLookup:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch wallet statistics'
       setError(errorMessage)
+      // Don't clear validation state on error so user can try again
     } finally {
       setIsCheckingAddress(false)
+      console.log('🏁 handleManualLookup finished, isCheckingAddress set to false')
     }
   }, [manualAddress, addressValidation, fetchWalletStats, validateAddress])
 
@@ -375,6 +401,7 @@ export function WalletCard() {
     setError(null)
     setChartData([])
     setWalletRank(null)
+    setHasPaidFee(null)
   }
 
   const copyAddress = async () => {
@@ -448,6 +475,35 @@ export function WalletCard() {
                   >
                     ×
                   </button>
+                </div>
+              )}
+
+              {/* Payment requirement notice */}
+              {hasPaidFee === false && walletData && (
+                <div className="mb-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-400">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold mb-1">Leaderboard Access Required</p>
+                      <p className="text-xs text-yellow-300/80 mb-2">
+                        To appear in the leaderboard, send at least <strong>1 USDC</strong> to:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="text-xs bg-black/30 px-2 py-1 rounded font-mono">
+                          0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2')
+                          }}
+                          className="text-yellow-300 hover:text-yellow-200 transition-colors"
+                          title="Copy address"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               

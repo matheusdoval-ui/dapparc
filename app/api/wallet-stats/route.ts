@@ -44,11 +44,15 @@ export async function GET(request: NextRequest) {
     // Convert from wei (18 decimals) to USDC display (6 decimals)
     const balanceUSDC = Number(balance) / 1e18
 
-    // Record wallet consultation for leaderboard
+    // Record wallet consultation for leaderboard (only if payment verified)
     // ARC Age will be calculated later if needed, for now pass null to avoid slow lookups
     try {
-      await recordWalletConsultation(normalizedAddress, txCount, null)
-      console.log(`✅ Wallet consultation recorded: ${normalizedAddress}, TX: ${txCount}`)
+      const result = await recordWalletConsultation(normalizedAddress, txCount, null)
+      if (result.recorded) {
+        console.log(`✅ Wallet consultation recorded: ${normalizedAddress}, TX: ${txCount}`)
+      } else {
+        console.log(`⛔ Wallet consultation not recorded: ${result.reason}`)
+      }
     } catch (error) {
       console.error('Error recording wallet consultation:', error)
     }
