@@ -48,28 +48,12 @@ export async function GET(request: NextRequest) {
     // Convert from wei (18 decimals) to USDC display (6 decimals)
     const balanceUSDC = Number(balance) / 1e18
 
-    // Calculate ARC Age: days since first transaction
-    // Try to get the first transaction timestamp, or use current time as fallback
-    let arcAge: number | null = null
-    try {
-      if (txCount > 0) {
-        // Try to get the first transaction by checking transaction history
-        // We'll use a simplified approach: calculate based on when wallet was first consulted
-        // For a more accurate ARC Age, we'd need to query the first transaction from blockchain
-        // For now, we'll calculate it when the wallet is first added to leaderboard
-        arcAge = null // Will be calculated in recordWalletConsultation based on firstConsultedAt
-      }
-    } catch (ageError) {
-      console.warn('Could not calculate ARC Age:', ageError)
-      arcAge = null
-    }
-
     // Record wallet consultation for leaderboard (non-blocking)
     // Only records if wallet was connected AND payment is verified
     // Manual lookups (connected=false) are NOT added to leaderboard
-    // ARC Age will be calculated based on firstConsultedAt in recordWalletConsultation
+    // ARC Age will be calculated later if needed, for now pass null to avoid slow lookups
     // Run in background to not block API response
-    recordWalletConsultation(normalizedAddress, txCount, arcAge, connected)
+    recordWalletConsultation(normalizedAddress, txCount, null, connected)
       .then((result) => {
         if (result.recorded) {
           console.log(`✅ Wallet consultation recorded to leaderboard: ${normalizedAddress}, TX: ${txCount}, Connected: ${connected}`)

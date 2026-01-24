@@ -1,9 +1,6 @@
 /**
- * Vercel KV / Upstash Redis storage adapter for leaderboard data
- * Provides persistent storage using Redis (via Vercel KV or Upstash Redis)
- * 
- * Note: @vercel/kv is deprecated but still works. For new projects, 
- * consider using @upstash/redis directly from Vercel Marketplace.
+ * Vercel KV storage adapter for leaderboard data
+ * Provides persistent storage using Vercel KV (Redis-based)
  */
 
 import { kv } from '@vercel/kv'
@@ -26,12 +23,8 @@ const KV_ALL_WALLETS_KEY = 'leaderboard:all_wallets'
  */
 function isKvAvailable(): boolean {
   try {
-    // Check if KV/Redis environment variables are set
-    // Supports both Vercel KV (deprecated) and Upstash Redis (new)
-    return !!(
-      (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) ||
-      (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
-    )
+    // Check if KV environment variables are set
+    return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
   } catch {
     return false
   }

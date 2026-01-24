@@ -28,22 +28,17 @@ export async function GET(request: NextRequest) {
     console.log(`📊 Leaderboard request: ${walletStats.length} wallets found`)
 
     // Convert to leaderboard entries
-    // Use ARC Age from storage, or calculate based on first consultation date
-    const now = Date.now()
+    // Calculate ARC Age based on first consultation date (simplified)
+    const now = Math.floor(Date.now() / 1000)
     const leaderboard: LeaderboardEntry[] = walletStats.map((stat, index) => {
-      // Use stored ARC Age if available, otherwise calculate from firstConsultedAt
-      let arcAgeDays: number | null = stat.arcAge
-      
-      if (arcAgeDays === null || arcAgeDays === undefined) {
-        // Calculate days since first consultation as fallback
-        arcAgeDays = Math.floor((now - stat.firstConsultedAt) / (1000 * 60 * 60 * 24))
-      }
+      // Calculate days since first consultation as a proxy for ARC Age
+      const daysSinceFirstConsult = Math.floor((now - (stat.firstConsultedAt / 1000)) / 86400)
       
       return {
         address: stat.address,
         transactions: stat.transactions,
         firstTransactionTimestamp: Math.floor(stat.firstConsultedAt / 1000),
-        arcAge: arcAgeDays,
+        arcAge: daysSinceFirstConsult,
         rank: index + 1,
       }
     })
