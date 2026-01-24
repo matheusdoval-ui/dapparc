@@ -170,7 +170,7 @@ export default function LeaderboardPage() {
 
       {/* Content */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Payment requirement notice */}
+        {/* Registration requirement notice */}
         <div className="mb-8 rounded-xl border border-arc-accent/30 bg-arc-accent/10 px-6 py-5 backdrop-blur-sm">
           <div className="flex items-start gap-4">
             <div className="rounded-full bg-arc-accent/20 p-3 flex-shrink-0">
@@ -183,11 +183,11 @@ export default function LeaderboardPage() {
               </p>
               <ol className="list-decimal list-inside space-y-2 text-sm text-white/70 mb-4">
                 <li>Connect your wallet using MetaMask or Rabby Wallet</li>
-                <li>Send at least <strong className="text-arc-accent">0.5 USDC or EURC</strong> to the developer wallet</li>
                 <li>Your wallet will automatically appear in the ranking</li>
+                <li>Optional: Register on-chain by calling <strong className="text-arc-accent">register()</strong> on the LeaderboardRegistry contract for enhanced tracking</li>
               </ol>
               <p className="text-xs text-white/50 mt-3 italic">
-                Note: Manual wallet lookups are not added to the leaderboard. Only connected wallets that have paid the fee will appear.
+                Note: Manual wallet lookups are not added to the leaderboard. Only connected wallets will appear. Your rank is preserved and will not be deleted.
               </p>
             </div>
           </div>

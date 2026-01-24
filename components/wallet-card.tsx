@@ -44,8 +44,9 @@ export function WalletCard() {
     isValid: boolean
     message: string
   } | null>(null)
-  const [hasPaidFee, setHasPaidFee] = useState<boolean | null>(null)
-  const [isCheckingPayment, setIsCheckingPayment] = useState(false)
+  const [isRegistered, setIsRegistered] = useState<boolean | null>(null)
+  const [isCheckingRegistration, setIsCheckingRegistration] = useState(false)
+  const [isRegistering, setIsRegistering] = useState(false)
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -226,19 +227,19 @@ export function WalletCard() {
       console.log('💾 Setting wallet data:', newWalletData)
       setWalletData(newWalletData)
 
-      // Check payment status for leaderboard
+      // Check registration status for leaderboard
       try {
-        setIsCheckingPayment(true)
-        const paymentResponse = await fetch(`/api/check-payment?address=${encodeURIComponent(data.address)}`)
-        if (paymentResponse.ok) {
-          const paymentData = await paymentResponse.json()
-          setHasPaidFee(paymentData.hasPaid)
-          console.log('💳 Payment status:', paymentData.hasPaid ? 'Paid' : 'Not paid')
+        setIsCheckingRegistration(true)
+        const registrationResponse = await fetch(`/api/check-registration?address=${encodeURIComponent(data.address)}`)
+        if (registrationResponse.ok) {
+          const registrationData = await registrationResponse.json()
+          setIsRegistered(registrationData.isRegistered)
+          console.log('✅ Registration status:', registrationData.isRegistered ? 'Registered' : 'Not registered')
         }
       } catch (err) {
-        console.warn('⚠️ Could not check payment status:', err)
+        console.warn('⚠️ Could not check registration status:', err)
       } finally {
-        setIsCheckingPayment(false)
+        setIsCheckingRegistration(false)
       }
 
       // Fetch wallet rank after getting stats
@@ -410,7 +411,7 @@ export function WalletCard() {
     setError(null)
     setChartData([])
     setWalletRank(null)
-    setHasPaidFee(null)
+    setIsRegistered(null)
   }
 
   const copyAddress = async () => {
@@ -487,32 +488,54 @@ export function WalletCard() {
                 </div>
               )}
 
-              {/* Payment requirement notice */}
-              {hasPaidFee === false && walletData && (
-                <div className="mb-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-400">
+              {/* Optional registration notice */}
+              {isRegistered === false && walletData && process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS && (
+                <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-400">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <p className="font-semibold mb-1">Leaderboard Access Required</p>
-                      <p className="text-xs text-yellow-300/80 mb-2">
-                        To appear in the leaderboard, you need to connect your wallet and send at least <strong>0.5 USDC or EURC</strong> to:
+                      <p className="font-semibold mb-1">Optional: On-Chain Registration</p>
+                      <p className="text-xs text-blue-300/80 mb-2">
+                        Your wallet is already in the leaderboard! You can optionally register on-chain for enhanced tracking. This is a simple transaction that proves real usage.
                       </p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <code className="text-xs bg-black/30 px-2 py-1 rounded font-mono">
-                          0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2
-                        </code>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText('0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2')
-                          }}
-                          className="text-yellow-300 hover:text-yellow-200 transition-colors"
-                          title="Copy address"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <p className="text-xs text-yellow-300/60 italic">
-                        Note: Manual lookups are not added to the leaderboard. Only connected wallets that have paid the fee will appear.
+                      <Button
+                        onClick={async () => {
+                          if (!walletData?.address) return
+                          const registryAddress = process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS
+                          if (!registryAddress) {
+                            setError('Registry contract address not configured')
+                            return
+                          }
+                          try {
+                            setIsRegistering(true)
+                            setError(null)
+                            const txHash = await registerForLeaderboard(registryAddress)
+                            console.log('✅ Registration transaction sent:', txHash)
+                            // Wait a bit for transaction to be mined
+                            await new Promise(resolve => setTimeout(resolve, 3000))
+                            // Refresh registration status
+                            const registrationResponse = await fetch(`/api/check-registration?address=${encodeURIComponent(walletData.address)}`)
+                            if (registrationResponse.ok) {
+                              const registrationData = await registrationResponse.json()
+                              setIsRegistered(registrationData.isRegistered)
+                            }
+                          } catch (err: any) {
+                            if (err.message && err.message.includes('rejected')) {
+                              setError('Transaction rejected')
+                            } else {
+                              setError(err.message || 'Failed to register')
+                            }
+                          } finally {
+                            setIsRegistering(false)
+                          }
+                        }}
+                        disabled={isRegistering}
+                        className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        {isRegistering ? 'Registering...' : 'Register On-Chain (Optional)'}
+                      </Button>
+                      <p className="text-xs text-blue-300/60 italic mt-2">
+                        Note: Your wallet is already in the leaderboard. Registration is optional for enhanced tracking.
                       </p>
                     </div>
                   </div>

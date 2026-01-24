@@ -178,7 +178,7 @@ export async function recordWalletConsultation(
   transactionCount: number,
   arcAge: number | null,
   isWalletConnected: boolean = false, // true if wallet was connected, false for manual lookup
-  hasPaidFee?: boolean // Optional: if not provided, will check payment
+  isRegistered?: boolean // Optional: if not provided, will check registration
 ): Promise<{ recorded: boolean; reason?: string }> {
   try {
     // Ensure storage is initialized
@@ -198,39 +198,46 @@ export async function recordWalletConsultation(
       }
     }
     
-    // Check payment if not provided (with timeout to prevent blocking)
-    let paid = hasPaidFee
-    if (paid === undefined) {
+    // If wallet is connected, it's eligible for leaderboard
+    // Registration on-chain is optional - if contract is deployed, we can check it
+    // but connecting the wallet is sufficient to appear in leaderboard
+    let registered = isRegistered
+    if (registered === undefined) {
+      // Only check registration if contract is deployed (optional check)
+      // If contract is not deployed or check fails, still allow connected wallets
       try {
-        // Verify payment - this is required for leaderboard
-        // Use timeout to prevent blocking API response
-        const { hasPaidLeaderboardFee } = await import('@/lib/payment-verification')
-        paid = await Promise.race([
-          hasPaidLeaderboardFee(normalizedAddress),
-          new Promise<boolean>((resolve) => {
-            setTimeout(() => {
-              console.warn(`⏱️ Payment verification timeout for ${normalizedAddress}, assuming not paid`)
-              resolve(false)
-            }, 10000) // 10 second timeout
-          })
-        ])
-      } catch (paymentError) {
-        console.warn(`⚠️ Payment verification error for ${normalizedAddress}:`, paymentError)
-        paid = false // Default to false on error
+        const { isWalletRegistered, REGISTRY_CONTRACT } = await import('@/lib/registration-verification')
+        // Only check if contract is deployed
+        if (REGISTRY_CONTRACT) {
+          registered = await Promise.race([
+            isWalletRegistered(normalizedAddress),
+            new Promise<boolean>((resolve) => {
+              setTimeout(() => {
+                console.warn(`⏱️ Registration verification timeout for ${normalizedAddress}, allowing anyway (connected wallet)`)
+                resolve(true) // Allow if timeout - wallet is connected
+              }, 10000) // 10 second timeout
+            })
+          ])
+        } else {
+          // No contract deployed - all connected wallets are eligible
+          registered = true
+        }
+      } catch (registrationError) {
+        console.warn(`⚠️ Registration verification error for ${normalizedAddress}, allowing anyway (connected wallet):`, registrationError)
+        registered = true // Default to true if error - wallet is connected
       }
     }
     
-    // Only add to leaderboard if payment is verified
-    if (!paid) {
-      console.log(`⛔ Wallet ${normalizedAddress} has not paid leaderboard fee - not adding to leaderboard`)
-      return {
-        recorded: false,
-        reason: 'Payment required: Send at least 0.5 USDC or EURC to 0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2 to appear in leaderboard'
-      }
+    // Connected wallets are always eligible (registration is optional enhancement)
+    if (!registered && isWalletConnected) {
+      // Even if not registered on-chain, if wallet is connected, allow it
+      // This ensures backward compatibility and that connecting is sufficient
+      console.log(`✅ Wallet ${normalizedAddress} is connected - adding to leaderboard (registration optional)`)
+      registered = true
     }
     
     console.log(`📦 Current map size before: ${walletStatsMap.size}`)
-    console.log(`💳 Payment verified for ${normalizedAddress}: Paid`)
+    console.log(`✅ Wallet connected and eligible: ${normalizedAddress}`)
 
     const existing = walletStatsMap.get(normalizedAddress)
 
@@ -240,7 +247,7 @@ export async function recordWalletConsultation(
       existing.lastConsultedAt = now
       existing.consultCount++
       existing.arcAge = arcAge
-      existing.hasPaidFee = true // Payment verified
+      existing.hasPaidFee = true // Keep for backward compatibility, but now means "registered"
       console.log(`📊 Updated wallet stats: ${normalizedAddress}, TX: ${transactionCount}, Consults: ${existing.consultCount}`)
     } else {
       // Create new entry
@@ -251,7 +258,7 @@ export async function recordWalletConsultation(
         lastConsultedAt: now,
         consultCount: 1,
         arcAge: arcAge,
-        hasPaidFee: true, // Payment verified
+        hasPaidFee: true, // Keep for backward compatibility, but now means "registered"
       })
       console.log(`🆕 New wallet added to leaderboard: ${normalizedAddress}, TX: ${transactionCount}`)
     }

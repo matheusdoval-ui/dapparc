@@ -259,6 +259,51 @@ export async function registerQueryAsTransaction(contractAddress?: string): Prom
   }
 }
 
+/**
+ * Register wallet for leaderboard on-chain
+ * Calls the register() function on LeaderboardRegistry contract
+ * Function selector for register(): 0x4a39e2d1 (keccak256("register()").slice(0, 4))
+ */
+export async function registerForLeaderboard(registryContractAddress: string): Promise<string> {
+  if (!isWalletInstalled()) {
+    throw new Error('No compatible wallet found')
+  }
+
+  const accounts = await getAccounts()
+  if (!accounts || accounts.length === 0) {
+    throw new Error('No accounts connected')
+  }
+
+  const address = accounts[0]
+
+  if (!registryContractAddress || !/^0x[a-fA-F0-9]{40}$/.test(registryContractAddress)) {
+    throw new Error('Invalid registry contract address')
+  }
+
+  try {
+    // Ensure connected to ARC Testnet
+    await ensureArcTestnet()
+
+    // Function selector for register() is: keccak256("register()") = 0x4a39e2d1...
+    // First 4 bytes: 0x4a39e2d1
+    const txHash = await window.ethereum!.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: address,
+        to: registryContractAddress,
+        data: '0x4a39e2d1', // register() function selector
+        gas: '0x186a0', // 100000 gas (safe estimate for contract call)
+      }],
+    })
+    return txHash as string
+  } catch (error: any) {
+    if (error.code === 4001) {
+      throw new Error('User rejected the transaction')
+    }
+    throw new Error(`Failed to register for leaderboard: ${error.message}`)
+  }
+}
+
 // Extend Window interface for TypeScript
 declare global {
   interface Window {
