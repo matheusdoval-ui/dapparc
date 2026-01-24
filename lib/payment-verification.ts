@@ -11,8 +11,9 @@ const ARC_RPC_URL = process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.network'
 // Developer wallet address (recipient of payment)
 export const DEVELOPER_WALLET = '0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2'.toLowerCase()
 
-// Minimum payment required: 1 USDC (native token on ARC, so 1e18 wei)
-const MINIMUM_PAYMENT_WEI = BigInt('1000000000000000000') // 1 USDC = 1e18 wei
+// Minimum payment required: 0.1 ARC (native token on ARC, so 0.1 * 1e18 wei)
+// This is a fair fee for leaderboard access
+const MINIMUM_PAYMENT_WEI = BigInt('100000000000000000') // 0.1 ARC = 0.1 * 1e18 wei
 
 // Cache for payment verification (to avoid repeated RPC calls)
 const paymentCache = new Map<string, { paid: boolean; timestamp: number }>()

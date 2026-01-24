@@ -211,7 +211,7 @@ export async function recordWalletConsultation(
       console.log(`⛔ Wallet ${normalizedAddress} has not paid leaderboard fee - not adding to leaderboard`)
       return {
         recorded: false,
-        reason: 'Payment required: Send at least 1 USDC to 0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2 to appear in leaderboard'
+        reason: 'Payment required: Send at least 0.1 ARC to 0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2 to appear in leaderboard'
       }
     }
     

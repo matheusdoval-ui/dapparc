@@ -487,9 +487,9 @@ export function WalletCard() {
                     <div className="flex-1">
                       <p className="font-semibold mb-1">Leaderboard Access Required</p>
                       <p className="text-xs text-yellow-300/80 mb-2">
-                        To appear in the leaderboard, send at least <strong>1 USDC</strong> to:
+                        To appear in the leaderboard, you need to connect your wallet and send at least <strong>0.1 ARC</strong> to:
                       </p>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mb-2">
                         <code className="text-xs bg-black/30 px-2 py-1 rounded font-mono">
                           0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2
                         </code>
@@ -503,6 +503,9 @@ export function WalletCard() {
                           <Copy className="h-3 w-3" />
                         </button>
                       </div>
+                      <p className="text-xs text-yellow-300/60 italic">
+                        Note: Manual lookups are not added to the leaderboard. Only connected wallets that have paid the fee will appear.
+                      </p>
                     </div>
                   </div>
                 </div>

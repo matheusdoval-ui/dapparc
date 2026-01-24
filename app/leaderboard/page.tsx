@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Activity, Calendar, Trophy, ExternalLink, RefreshCw, Sparkles, Crown } from "lucide-react"
+import { Activity, Calendar, Trophy, ExternalLink, RefreshCw, Sparkles, Crown, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
@@ -170,6 +170,46 @@ export default function LeaderboardPage() {
 
       {/* Content */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Payment requirement notice */}
+        <div className="mb-8 rounded-xl border border-arc-accent/30 bg-arc-accent/10 px-6 py-5 backdrop-blur-sm">
+          <div className="flex items-start gap-4">
+            <div className="rounded-full bg-arc-accent/20 p-3 flex-shrink-0">
+              <Trophy className="h-6 w-6 text-arc-accent" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-2">How to Appear in the Leaderboard</h3>
+              <p className="text-white/80 text-sm mb-3">
+                To appear in the ARC Activity Leaderboard, you need to:
+              </p>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-white/70 mb-4">
+                <li>Connect your wallet using MetaMask or Rabby Wallet</li>
+                <li>Send at least <strong className="text-arc-accent">0.1 ARC</strong> to the developer wallet</li>
+                <li>Your wallet will automatically appear in the ranking</li>
+              </ol>
+              <div className="bg-black/30 rounded-lg p-3 mt-4">
+                <p className="text-xs text-white/60 mb-2">Developer Wallet Address:</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs bg-black/50 px-3 py-1.5 rounded font-mono text-arc-accent">
+                    0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText('0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2')
+                    }}
+                    className="text-arc-accent/70 hover:text-arc-accent transition-colors"
+                    title="Copy address"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-white/50 mt-3 italic">
+                Note: Manual wallet lookups are not added to the leaderboard. Only connected wallets that have paid the fee will appear.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {error ? (
           <Card className="border-red-500/30 bg-red-500/10 backdrop-blur-sm p-8 shadow-lg">
             <div className="flex items-start gap-4">
