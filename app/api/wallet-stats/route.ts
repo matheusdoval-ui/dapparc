@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     // Record wallet consultation for leaderboard
     // ARC Age will be calculated later if needed, for now pass null to avoid slow lookups
     try {
-      recordWalletConsultation(normalizedAddress, txCount, null)
+      await recordWalletConsultation(normalizedAddress, txCount, null)
       console.log(`✅ Wallet consultation recorded: ${normalizedAddress}, TX: ${txCount}`)
     } catch (error) {
       console.error('Error recording wallet consultation:', error)

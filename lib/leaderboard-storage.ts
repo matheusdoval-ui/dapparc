@@ -1,7 +1,11 @@
 /**
- * Simple in-memory storage for leaderboard data
- * In production, use a database (PostgreSQL, MongoDB, etc.)
+ * Persistent storage for leaderboard data
+ * Uses file system to persist data between server restarts
+ * In production, consider using a database (PostgreSQL, MongoDB, etc.)
  */
+
+import { promises as fs } from 'fs'
+import { join } from 'path'
 
 interface WalletStats {
   address: string
@@ -12,29 +16,155 @@ interface WalletStats {
   arcAge: number | null // days since first transaction
 }
 
-// In-memory storage (will reset on server restart)
-// In production, use a database
+// File path for persistence
+const DATA_DIR = join(process.cwd(), '.data')
+const DATA_FILE = join(DATA_DIR, 'leaderboard.json')
+
+// In-memory storage with file persistence
 // Using globalThis to ensure persistence across hot reloads in development
 declare global {
   var __walletStatsMap: Map<string, WalletStats> | undefined
+  var __saveTimeout: NodeJS.Timeout | undefined
 }
 
-const walletStatsMap = 
-  globalThis.__walletStatsMap ?? new Map<string, WalletStats>()
+let walletStatsMap: Map<string, WalletStats>
+let isInitialized = false
 
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.__walletStatsMap = walletStatsMap
+/**
+ * Load data from file
+ */
+async function loadFromFile(): Promise<Map<string, WalletStats>> {
+  try {
+    // Ensure data directory exists
+    await fs.mkdir(DATA_DIR, { recursive: true })
+    
+    // Try to read existing data
+    const data = await fs.readFile(DATA_FILE, 'utf-8')
+    const parsed = JSON.parse(data) as Record<string, WalletStats>
+    
+    const map = new Map<string, WalletStats>()
+    for (const [key, value] of Object.entries(parsed)) {
+      map.set(key, value)
+    }
+    
+    console.log(`📂 Loaded ${map.size} wallet stats from file`)
+    return map
+  } catch (error: any) {
+    // File doesn't exist or is invalid - start fresh
+    if (error.code === 'ENOENT') {
+      console.log('📂 No existing data file found, starting fresh')
+      return new Map<string, WalletStats>()
+    }
+    console.warn('⚠️ Error loading data file, starting fresh:', error.message)
+    return new Map<string, WalletStats>()
+  }
+}
+
+/**
+ * Save data to file (with debouncing)
+ */
+async function saveToFile(): Promise<void> {
+  try {
+    // Clear any pending save
+    if (globalThis.__saveTimeout) {
+      clearTimeout(globalThis.__saveTimeout)
+    }
+
+    // Debounce: wait 1 second before saving to avoid too many writes
+    globalThis.__saveTimeout = setTimeout(async () => {
+      try {
+        // Ensure data directory exists
+        await fs.mkdir(DATA_DIR, { recursive: true })
+        
+        // Convert Map to object for JSON serialization
+        const data: Record<string, WalletStats> = {}
+        walletStatsMap.forEach((value, key) => {
+          data[key] = value
+        })
+        
+        // Write to file atomically (write to temp file then rename)
+        const tempFile = `${DATA_FILE}.tmp`
+        await fs.writeFile(tempFile, JSON.stringify(data, null, 2), 'utf-8')
+        await fs.rename(tempFile, DATA_FILE)
+        
+        console.log(`💾 Saved ${walletStatsMap.size} wallet stats to file`)
+      } catch (error) {
+        console.error('❌ Error saving data file:', error)
+      }
+    }, 1000)
+  } catch (error) {
+    console.error('❌ Error scheduling save:', error)
+  }
+}
+
+/**
+ * Initialize storage (load from file or use existing in-memory)
+ */
+async function initializeStorage(): Promise<Map<string, WalletStats>> {
+  if (isInitialized && walletStatsMap) {
+    return walletStatsMap
+  }
+
+  // Check if we have data in globalThis (hot reload in development)
+  if (globalThis.__walletStatsMap) {
+    walletStatsMap = globalThis.__walletStatsMap
+    isInitialized = true
+    console.log(`🔄 Using existing in-memory data (${walletStatsMap.size} entries)`)
+    return walletStatsMap
+  }
+
+  // Load from file
+  walletStatsMap = await loadFromFile()
+  
+  // Store in globalThis for hot reload persistence
+  if (process.env.NODE_ENV !== 'production') {
+    globalThis.__walletStatsMap = walletStatsMap
+  }
+  
+  isInitialized = true
+  return walletStatsMap
+}
+
+// Initialize on module load
+let storagePromise: Promise<Map<string, WalletStats>> | null = null
+
+function getStorage(): Promise<Map<string, WalletStats>> {
+  if (!storagePromise) {
+    storagePromise = initializeStorage()
+  }
+  return storagePromise
+}
+
+// Get storage synchronously (for functions that need immediate access)
+// This will use existing map or create empty one
+if (globalThis.__walletStatsMap) {
+  walletStatsMap = globalThis.__walletStatsMap
+  isInitialized = true
+} else {
+  walletStatsMap = new Map<string, WalletStats>()
+  // Initialize asynchronously
+  initializeStorage().then(map => {
+    walletStatsMap = map
+    if (process.env.NODE_ENV !== 'production') {
+      globalThis.__walletStatsMap = walletStatsMap
+    }
+  }).catch(err => {
+    console.error('Error initializing storage:', err)
+  })
 }
 
 /**
  * Record a wallet consultation
  */
-export function recordWalletConsultation(
+export async function recordWalletConsultation(
   address: string,
   transactionCount: number,
   arcAge: number | null
-): void {
+): Promise<void> {
   try {
+    // Ensure storage is initialized
+    await getStorage()
+    
     const now = Date.now()
     const normalizedAddress = address.toLowerCase()
 
@@ -65,6 +195,9 @@ export function recordWalletConsultation(
 
     console.log(`📦 Current map size after: ${walletStatsMap.size}`)
     console.log(`📋 All addresses in map:`, Array.from(walletStatsMap.keys()))
+
+    // Save to file (debounced)
+    await saveToFile()
   } catch (error) {
     console.error('Error in recordWalletConsultation:', error)
     throw error
@@ -72,27 +205,43 @@ export function recordWalletConsultation(
 }
 
 /**
- * Get all wallet stats for leaderboard
+ * Get all wallet stats for leaderboard (synchronous version for immediate access)
  */
-export function getAllWalletStats(): WalletStats[] {
+export function getAllWalletStatsSync(): WalletStats[] {
   const stats = Array.from(walletStatsMap.values())
   console.log(`📊 Total wallets in leaderboard: ${stats.length}`)
   return stats
 }
 
 /**
- * Get wallet stats by address
+ * Get all wallet stats for leaderboard (async version that ensures storage is loaded)
  */
-export function getWalletStats(address: string): WalletStats | null {
+export async function getAllWalletStats(): Promise<WalletStats[]> {
+  await getStorage()
+  return getAllWalletStatsSync()
+}
+
+/**
+ * Get wallet stats by address (synchronous version)
+ */
+export function getWalletStatsSync(address: string): WalletStats | null {
   return walletStatsMap.get(address.toLowerCase()) || null
 }
 
 /**
- * Get leaderboard sorted by transactions and ARC Age
+ * Get wallet stats by address (async version)
  */
-export function getLeaderboard(limit: number = 100): WalletStats[] {
+export async function getWalletStats(address: string): Promise<WalletStats | null> {
+  await getStorage()
+  return getWalletStatsSync(address)
+}
+
+/**
+ * Get leaderboard sorted by transactions and ARC Age (synchronous version)
+ */
+export function getLeaderboardSync(limit: number = 100): WalletStats[] {
   console.log(`🔍 getLeaderboard called, map size: ${walletStatsMap.size}`)
-  const allStats = getAllWalletStats()
+  const allStats = getAllWalletStatsSync()
   console.log(`📊 getAllWalletStats returned: ${allStats.length} entries`)
 
   // Sort by transactions (desc), then by first consulted date (older is better), then by consult count (desc)
@@ -115,14 +264,30 @@ export function getLeaderboard(limit: number = 100): WalletStats[] {
 }
 
 /**
- * Get rank for a specific address
+ * Get leaderboard sorted by transactions and ARC Age (async version)
  */
-export function getWalletRank(address: string): number | null {
-  const allStats = getLeaderboard(1000) // Get all for ranking
+export async function getLeaderboard(limit: number = 100): Promise<WalletStats[]> {
+  await getStorage()
+  return getLeaderboardSync(limit)
+}
+
+/**
+ * Get rank for a specific address (synchronous version)
+ */
+export function getWalletRankSync(address: string): number | null {
+  const allStats = getLeaderboardSync(1000) // Get all for ranking
   const normalizedAddress = address.toLowerCase()
   
   const index = allStats.findIndex(stat => stat.address === normalizedAddress)
   
   if (index === -1) return null
   return index + 1
+}
+
+/**
+ * Get rank for a specific address (async version)
+ */
+export async function getWalletRank(address: string): Promise<number | null> {
+  await getStorage()
+  return getWalletRankSync(address)
 }

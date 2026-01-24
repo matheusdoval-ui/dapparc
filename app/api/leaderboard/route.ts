@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100', 10)
 
     // Get leaderboard from storage (based on consulted wallets)
-    const walletStats = getLeaderboard(limit)
+    const walletStats = await getLeaderboard(limit)
     console.log(`📊 Leaderboard request: ${walletStats.length} wallets found`)
 
     // Convert to leaderboard entries

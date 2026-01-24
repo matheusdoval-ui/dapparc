@@ -39,10 +39,56 @@ export function WalletCard() {
   const [manualLookupAddress, setManualLookupAddress] = useState<string | null>(null)
   const [walletRank, setWalletRank] = useState<number | null>(null)
   const [isLoadingRank, setIsLoadingRank] = useState(false)
+  const [isCheckingAddress, setIsCheckingAddress] = useState(false)
+  const [addressValidation, setAddressValidation] = useState<{
+    isValid: boolean
+    message: string
+  } | null>(null)
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
+
+  // Validate address in real-time
+  const validateAddress = useCallback((address: string) => {
+    const trimmed = address.trim()
+    
+    if (!trimmed) {
+      setAddressValidation(null)
+      return false
+    }
+
+    if (trimmed.length < 42) {
+      setAddressValidation({
+        isValid: false,
+        message: 'Address too short'
+      })
+      return false
+    }
+
+    if (!trimmed.startsWith('0x')) {
+      setAddressValidation({
+        isValid: false,
+        message: 'Address must start with 0x'
+      })
+      return false
+    }
+
+    const ethAddressPattern = /^0x[a-fA-F0-9]{40}$/i
+    if (ethAddressPattern.test(trimmed)) {
+      setAddressValidation({
+        isValid: true,
+        message: 'Valid address'
+      })
+      return true
+    } else {
+      setAddressValidation({
+        isValid: false,
+        message: 'Invalid address format'
+      })
+      return false
+    }
+  }, [])
 
   // Generate chart data showing growth over last 30 days
   // This simulates growth based on current transaction count
@@ -77,6 +123,8 @@ export function WalletCard() {
   // Fetch wallet statistics from API and register query as transaction
   const fetchWalletStats = useCallback(async (address: string, registerTransaction: boolean = true) => {
     console.log('🔍 fetchWalletStats called with:', { address, registerTransaction })
+    
+    // Set loading states immediately for better UX
     setIsLoadingStats(true)
     setIsRefreshing(true)
     setError(null)
@@ -126,11 +174,13 @@ export function WalletCard() {
       const apiUrl = `/api/wallet-stats?address=${encodeURIComponent(normalizedAddress)}`
       console.log('🌐 API URL:', apiUrl)
       
+      // Make API call immediately without delays
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        cache: 'no-store', // Ensure fresh data
       })
       
       console.log('📥 API Response status:', response.status, response.statusText)
@@ -252,28 +302,43 @@ export function WalletCard() {
     if (!trimmed) {
       console.warn('⚠️ Empty address')
       setError('Enter a valid wallet address to continue.')
+      setAddressValidation({
+        isValid: false,
+        message: 'Address is required'
+      })
       return
     }
 
-    const ethAddressPattern = /^0x[a-fA-F0-9]{40}$/i
-    if (!ethAddressPattern.test(trimmed)) {
+    // Use validation state if available, otherwise validate now
+    const isValid = addressValidation?.isValid ?? validateAddress(trimmed)
+    
+    if (!isValid) {
       console.warn('⚠️ Invalid address format:', trimmed)
-      setError('Paste an address with format 0x followed by 40 hexadecimal characters.')
+      setError('Please enter a valid Ethereum address (0x followed by 40 hex characters).')
       return
     }
 
-    console.log('✅ Address validated, fetching stats...')
+    // Set loading state immediately for UI feedback
+    setIsCheckingAddress(true)
     setError(null)
     setManualLookupAddress(null)
     setIsConnected(false)
 
     try {
+      console.log('✅ Address validated, fetching stats...')
       await fetchWalletStats(trimmed, false)
       setManualLookupAddress(trimmed)
+      // Don't clear input - let user see what they searched
+      // setManualAddress('')
+      // setAddressValidation(null)
     } catch (err) {
       console.error('❌ Error in handleManualLookup:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch wallet statistics'
+      setError(errorMessage)
+    } finally {
+      setIsCheckingAddress(false)
     }
-  }, [manualAddress, fetchWalletStats])
+  }, [manualAddress, addressValidation, fetchWalletStats, validateAddress])
 
   // Listen for account changes (but don't auto-connect)
   useEffect(() => {
@@ -306,6 +371,10 @@ export function WalletCard() {
     setWalletData(null)
     setManualLookupAddress(null)
     setManualAddress('')
+    setAddressValidation(null)
+    setError(null)
+    setChartData([])
+    setWalletRank(null)
   }
 
   const copyAddress = async () => {
@@ -369,27 +438,34 @@ export function WalletCard() {
 
               {/* Error message */}
               {error && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 animate-in slide-in-from-top-2">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{error}</span>
+                  <button
+                    onClick={() => setError(null)}
+                    className="ml-auto text-red-400/60 hover:text-red-400 transition-colors"
+                    aria-label="Dismiss error"
+                  >
+                    ×
+                  </button>
                 </div>
               )}
               
               <Button
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="group relative w-full overflow-hidden rounded-xl bg-arc-accent py-6 text-base font-semibold text-white transition-all duration-300 hover:bg-arc-accent/90 hover:shadow-[0_0_30px_rgba(0,174,239,0.4)] disabled:opacity-70"
+                className="group relative w-full overflow-hidden rounded-xl bg-arc-accent py-6 text-base font-semibold text-white transition-all duration-300 hover:bg-arc-accent/90 hover:shadow-[0_0_30px_rgba(0,174,239,0.4)] disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                 {isConnecting ? (
-                  <span className="flex items-center justify-center gap-2">
+                  <span className="flex items-center justify-center gap-2 relative z-10">
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Connecting...
+                    <span>Connecting...</span>
                   </span>
                 ) : (
-                  <span className="flex items-center justify-center gap-2">
+                  <span className="flex items-center justify-center gap-2 relative z-10">
                     <Wallet className="h-5 w-5" />
-                    Connect Wallet
+                    <span>Connect Wallet</span>
                   </span>
                 )}
               </Button>
@@ -400,25 +476,100 @@ export function WalletCard() {
               </p>
 
               <div className="mt-6 w-full space-y-3">
-                <p className="text-center text-xs text-muted-foreground/80">
-                  Or paste an ARC address (0x...) to check interactions without signing transactions.
+                <div className="flex items-center gap-2 text-center text-xs text-muted-foreground/80">
+                  <div className="h-px flex-1 bg-white/10" />
+                  <span>Or check an address manually</span>
+                  <div className="h-px flex-1 bg-white/10" />
+                </div>
+                <p className="text-center text-xs text-muted-foreground/60">
+                  Paste an ARC address (0x...) to check interactions without signing transactions
                 </p>
-                <div className="flex w-full gap-3">
-                  <Input
-                    value={manualAddress}
-                    onChange={(event) => setManualAddress(event.target.value)}
-                    placeholder="0x1234...abcd"
-                    className="flex-1 border-white/30 bg-white/[0.05] text-sm text-white placeholder:text-white/40"
-                    autoComplete="off"
-                    maxLength={66}
-                  />
-                  <Button
-                    onClick={handleManualLookup}
-                    disabled={isLoadingStats || !manualAddress.trim()}
-                    className="flex-shrink-0 rounded-xl bg-white/10 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/20 disabled:opacity-60"
-                  >
-                    Check
-                  </Button>
+                <div className="flex w-full flex-col gap-2">
+                  <div className="flex w-full gap-3">
+                    <div className="relative flex-1">
+                      <Input
+                        value={manualAddress}
+                        onChange={(event) => {
+                          const value = event.target.value
+                          setManualAddress(value)
+                          validateAddress(value)
+                          // Clear error when user starts typing
+                          if (error && value.trim()) {
+                            setError(null)
+                          }
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' && !isCheckingAddress && !isLoadingStats && manualAddress.trim() && addressValidation?.isValid) {
+                            event.preventDefault()
+                            handleManualLookup()
+                          }
+                        }}
+                        onPaste={(event) => {
+                          // Validate pasted content
+                          setTimeout(() => {
+                            validateAddress(manualAddress)
+                          }, 0)
+                        }}
+                        placeholder="0x1234...abcd"
+                        className={`flex-1 border-white/30 bg-white/[0.05] text-sm text-white placeholder:text-white/40 transition-all ${
+                          addressValidation?.isValid 
+                            ? 'border-green-500/50 focus:border-green-500/80' 
+                            : addressValidation?.isValid === false && manualAddress.trim()
+                            ? 'border-red-500/50 focus:border-red-500/80'
+                            : 'focus:border-arc-accent/50'
+                        } ${isCheckingAddress || isLoadingStats ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        autoComplete="off"
+                        maxLength={66}
+                        disabled={isCheckingAddress || isLoadingStats}
+                      />
+                      {addressValidation && manualAddress.trim() && (
+                        <div className={`absolute right-3 top-1/2 -translate-y-1/2 transition-opacity ${
+                          addressValidation.isValid ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {addressValidation.isValid ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (addressValidation?.isValid) {
+                          handleManualLookup()
+                        }
+                      }}
+                      disabled={isCheckingAddress || isLoadingStats || !addressValidation?.isValid}
+                      className={`flex-shrink-0 rounded-xl px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white transition-all active:scale-95 ${
+                        addressValidation?.isValid && !isCheckingAddress && !isLoadingStats
+                          ? 'bg-arc-accent hover:bg-arc-accent/90 hover:shadow-[0_0_20px_rgba(0,174,239,0.4)]'
+                          : 'bg-white/10 hover:bg-white/20 disabled:opacity-60'
+                      }`}
+                    >
+                      {isCheckingAddress || isLoadingStats ? (
+                        <span className="flex items-center gap-2">
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Checking...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Activity className="h-3 w-3" />
+                          Check
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                  {addressValidation && manualAddress.trim() && (
+                    <p className={`text-xs transition-all ${
+                      addressValidation.isValid 
+                        ? 'text-green-400/80' 
+                        : 'text-red-400/80'
+                    }`}>
+                      {addressValidation.message}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -535,8 +686,9 @@ export function WalletCard() {
                   </div>
                 </div>
                 {isLoadingStats ? (
-                  <div className="flex items-center justify-center py-8">
-                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-arc-accent border-t-transparent" />
+                  <div className="flex flex-col items-center justify-center py-8 gap-3">
+                    <span className="h-8 w-8 animate-spin rounded-full border-3 border-arc-accent/30 border-t-arc-accent" />
+                    <p className="text-sm text-muted-foreground animate-pulse">Loading wallet data...</p>
                   </div>
                 ) : error ? (
                   <div className="flex items-center gap-2 py-4 text-sm text-red-400">
@@ -554,7 +706,7 @@ export function WalletCard() {
                     
                     {/* Growth Chart - Only show if we have data */}
                     {chartData.length > 0 && (
-                      <div className="mt-6 h-48 w-full">
+                      <div className="mt-6 h-48 w-full animate-in fade-in slide-in-from-bottom-4">
                         <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
                           <TrendingUp className="h-3 w-3 text-arc-accent" />
                           <span>Growth over last 30 days</span>

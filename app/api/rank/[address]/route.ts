@@ -20,8 +20,8 @@ export async function GET(
       )
     }
 
-    const rank = getWalletRank(address)
-    const stats = getWalletStats(address)
+    const rank = await getWalletRank(address)
+    const stats = await getWalletStats(address)
 
     if (!stats) {
       return NextResponse.json({
