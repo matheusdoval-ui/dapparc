@@ -116,26 +116,37 @@ async function saveToFile(): Promise<void> {
  * Initialize storage (load from file or use existing in-memory)
  */
 async function initializeStorage(): Promise<Map<string, WalletStats>> {
-  if (isInitialized && walletStatsMap) {
+  if (isInitialized && walletStatsMap && walletStatsMap.size > 0) {
     return walletStatsMap
   }
 
-  // Check if we have data in globalThis (hot reload in development)
-  if (globalThis.__walletStatsMap) {
+  // Always try to load from file first (most reliable source of truth)
+  try {
+    const fileData = await loadFromFile()
+    if (fileData.size > 0) {
+      walletStatsMap = fileData
+      globalThis.__walletStatsMap = walletStatsMap
+      isInitialized = true
+      console.log(`📂 Loaded ${fileData.size} entries from file`)
+      return walletStatsMap
+    }
+  } catch (error: any) {
+    console.warn('⚠️ Could not load from file, trying globalThis:', error.message)
+  }
+
+  // Fallback: Check if we have data in globalThis (hot reload in development or warm-up)
+  if (globalThis.__walletStatsMap && globalThis.__walletStatsMap.size > 0) {
     walletStatsMap = globalThis.__walletStatsMap
     isInitialized = true
-    console.log(`🔄 Using existing in-memory data (${walletStatsMap.size} entries)`)
+    console.log(`🔄 Using existing in-memory data from globalThis (${walletStatsMap.size} entries)`)
     return walletStatsMap
   }
 
-  // Load from file
-  walletStatsMap = await loadFromFile()
-  
-  // Store in globalThis for hot reload persistence (works in both dev and production)
-  // In production, this helps maintain data during function warm-up
+  // Last resort: start with empty map
+  walletStatsMap = new Map<string, WalletStats>()
   globalThis.__walletStatsMap = walletStatsMap
-  
   isInitialized = true
+  console.log('📦 Starting with empty storage')
   return walletStatsMap
 }
 
@@ -143,7 +154,9 @@ async function initializeStorage(): Promise<Map<string, WalletStats>> {
 let storagePromise: Promise<Map<string, WalletStats>> | null = null
 
 function getStorage(): Promise<Map<string, WalletStats>> {
-  if (!storagePromise) {
+  // Always reinitialize if not initialized or if map is empty
+  // This ensures we try to load from file on every request
+  if (!storagePromise || !isInitialized || !walletStatsMap || walletStatsMap.size === 0) {
     storagePromise = initializeStorage()
   }
   return storagePromise
@@ -151,13 +164,13 @@ function getStorage(): Promise<Map<string, WalletStats>> {
 
 // Get storage synchronously (for functions that need immediate access)
 // This will use existing map or create empty one
-if (globalThis.__walletStatsMap) {
+if (globalThis.__walletStatsMap && globalThis.__walletStatsMap.size > 0) {
   walletStatsMap = globalThis.__walletStatsMap
   isInitialized = true
   console.log(`📦 Using existing global storage (${walletStatsMap.size} entries)`)
 } else {
   walletStatsMap = new Map<string, WalletStats>()
-  // Initialize asynchronously
+  // Initialize asynchronously - always try to load from file
   initializeStorage().then(map => {
     walletStatsMap = map
     // Store in globalThis for persistence (works in both dev and production)
@@ -273,7 +286,10 @@ export async function recordWalletConsultation(
     // This is critical for data preservation
     try {
       await saveToFileImmediate()
-      console.log('💾 Data saved to file successfully')
+      console.log(`💾 Data saved to file successfully (${walletStatsMap.size} entries)`)
+      
+      // Also update globalThis to ensure it's in sync
+      globalThis.__walletStatsMap = walletStatsMap
     } catch (err: any) {
       // In serverless environments (Vercel), file system may be read-only
       // This is expected - data will persist in memory during the function execution
@@ -281,9 +297,12 @@ export async function recordWalletConsultation(
       if (err.code === 'EROFS' || err.code === 'EACCES') {
         console.warn('⚠️ File system is read-only (serverless environment) - data persists in memory only')
         console.warn('💡 Consider using a database (PostgreSQL, MongoDB) or Vercel KV for production persistence')
+        // Still update globalThis even if file save fails
+        globalThis.__walletStatsMap = walletStatsMap
       } else {
         console.error('❌ Error saving to file:', err.message || err)
-        // Still continue - data is in memory
+        // Still continue - data is in memory and globalThis
+        globalThis.__walletStatsMap = walletStatsMap
       }
       
       // Also try debounced save as fallback
@@ -363,7 +382,14 @@ export function getLeaderboardSync(limit: number = 100): WalletStats[] {
  * Get leaderboard sorted by transactions and ARC Age (async version)
  */
 export async function getLeaderboard(limit: number = 100): Promise<WalletStats[]> {
+  // Force reload from storage to ensure we have latest data
   await getStorage()
+  // Double check - if still empty, try to reload
+  if (walletStatsMap.size === 0) {
+    console.log('⚠️ Storage is empty, attempting to reload...')
+    isInitialized = false
+    await initializeStorage()
+  }
   return getLeaderboardSync(limit)
 }
 
