@@ -318,6 +318,13 @@ export function WalletCard() {
 
   const handleManualLookup = useCallback(async () => {
     console.log('🔍 handleManualLookup called with:', manualAddress)
+    console.log('📊 Current state:', { 
+      manualAddress, 
+      addressValidation, 
+      isCheckingAddress, 
+      isLoadingStats 
+    })
+    
     const trimmed = manualAddress.trim()
 
     if (!trimmed) {
@@ -330,8 +337,8 @@ export function WalletCard() {
       return
     }
 
-    // Use validation state if available, otherwise validate now
-    const isValid = addressValidation?.isValid ?? validateAddress(trimmed)
+    // Validate address format
+    const isValid = validateAddress(trimmed)
     
     if (!isValid) {
       console.warn('⚠️ Invalid address format:', trimmed)
@@ -340,6 +347,7 @@ export function WalletCard() {
     }
 
     // Set loading state immediately for UI feedback
+    console.log('⏳ Setting loading states...')
     setIsCheckingAddress(true)
     setError(null)
     setManualLookupAddress(null)
@@ -347,20 +355,20 @@ export function WalletCard() {
 
     try {
       console.log('✅ Address validated, fetching stats...')
-      console.log('📞 Calling fetchWalletStats with:', { address: trimmed, registerTransaction: false, isWalletConnected: false })
+      console.log('📞 Calling fetchWalletStats with:', { 
+        address: trimmed, 
+        registerTransaction: false, 
+        isWalletConnected: false 
+      })
       
       await fetchWalletStats(trimmed, false, false) // registerTransaction=false, isWalletConnected=false (manual lookup)
       
       console.log('✅ fetchWalletStats completed successfully')
       setManualLookupAddress(trimmed)
-      // Don't clear input - let user see what they searched
-      // setManualAddress('')
-      // setAddressValidation(null)
     } catch (err) {
       console.error('❌ Error in handleManualLookup:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch wallet statistics'
       setError(errorMessage)
-      // Don't clear validation state on error so user can try again
     } finally {
       setIsCheckingAddress(false)
       console.log('🏁 handleManualLookup finished, isCheckingAddress set to false')
@@ -597,11 +605,18 @@ export function WalletCard() {
                     <Button
                       onClick={(e) => {
                         e.preventDefault()
-                        if (addressValidation?.isValid) {
+                        console.log('🔘 Check button clicked', { 
+                          addressValidation, 
+                          isCheckingAddress, 
+                          isLoadingStats,
+                          manualAddress 
+                        })
+                        // Allow click even if validation state is not set, will validate in handleManualLookup
+                        if (!isCheckingAddress && !isLoadingStats) {
                           handleManualLookup()
                         }
                       }}
-                      disabled={isCheckingAddress || isLoadingStats || !addressValidation?.isValid}
+                      disabled={isCheckingAddress || isLoadingStats}
                       className={`flex-shrink-0 rounded-xl px-5 py-3 text-xs font-semibold uppercase tracking-wide text-white transition-all active:scale-95 ${
                         addressValidation?.isValid && !isCheckingAddress && !isLoadingStats
                           ? 'bg-arc-accent hover:bg-arc-accent/90 hover:shadow-[0_0_20px_rgba(0,174,239,0.4)]'

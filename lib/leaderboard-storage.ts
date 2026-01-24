@@ -198,12 +198,26 @@ export async function recordWalletConsultation(
       }
     }
     
-    // Check payment if not provided
+    // Check payment if not provided (with timeout to prevent blocking)
     let paid = hasPaidFee
     if (paid === undefined) {
-      // Verify payment - this is required for leaderboard
-      const { hasPaidLeaderboardFee } = await import('@/lib/payment-verification')
-      paid = await hasPaidLeaderboardFee(normalizedAddress)
+      try {
+        // Verify payment - this is required for leaderboard
+        // Use timeout to prevent blocking API response
+        const { hasPaidLeaderboardFee } = await import('@/lib/payment-verification')
+        paid = await Promise.race([
+          hasPaidLeaderboardFee(normalizedAddress),
+          new Promise<boolean>((resolve) => {
+            setTimeout(() => {
+              console.warn(`⏱️ Payment verification timeout for ${normalizedAddress}, assuming not paid`)
+              resolve(false)
+            }, 10000) // 10 second timeout
+          })
+        ])
+      } catch (paymentError) {
+        console.warn(`⚠️ Payment verification error for ${normalizedAddress}:`, paymentError)
+        paid = false // Default to false on error
+      }
     }
     
     // Only add to leaderboard if payment is verified
