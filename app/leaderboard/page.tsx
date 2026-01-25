@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Activity, Calendar, Trophy, ExternalLink, RefreshCw, Sparkles, Crown } from "lucide-react"
+import { Activity, Trophy, ExternalLink, RefreshCw, Sparkles, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
@@ -9,7 +9,6 @@ interface LeaderboardEntry {
   address: string
   transactions: number
   firstTransactionTimestamp: number | null
-  arcAge: number | null
   rank: number
 }
 
@@ -31,9 +30,11 @@ export default function LeaderboardPage() {
       }
 
       const data = await response.json()
-      const raw = data.leaderboard || []
-      // Sort by transactions (desc) – rank = position
-      const sorted = [...raw].sort((a, b) => b.transactions - a.transactions)
+      const raw = Array.isArray(data.leaderboard) ? data.leaderboard : []
+      // Sort by transactions (desc) – rank = position; safe for missing values
+      const sorted = [...raw].sort(
+        (a, b) => (Number(b?.transactions) || 0) - (Number(a?.transactions) || 0)
+      )
       const withRank = sorted.map((e, i) => ({ ...e, rank: i + 1 }))
       setLeaderboard(withRank)
     } catch (err) {
@@ -51,20 +52,6 @@ export default function LeaderboardPage() {
 
   const shortenAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
-  }
-
-  const formatArcAge = (days: number | null) => {
-    if (!days) return 'N/A'
-    
-    if (days >= 365) {
-      const years = Math.floor(days / 365)
-      return `${years} ${years === 1 ? 'year' : 'years'}`
-    } else if (days >= 30) {
-      const months = Math.floor(days / 30)
-      return `${months} ${months === 1 ? 'month' : 'months'}`
-    } else {
-      return `${days} ${days === 1 ? 'day' : 'days'}`
-    }
   }
 
   const getRankIcon = (rank: number) => {
@@ -326,17 +313,6 @@ export default function LeaderboardPage() {
                         </div>
                         <p className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-transparent">
                           {entry.transactions.toLocaleString()}
-                        </p>
-                      </div>
-
-                      {/* ARC Age */}
-                      <div className="text-center sm:text-right">
-                        <div className="flex items-center gap-2 text-white/60 mb-2 justify-center sm:justify-end">
-                          <Calendar className="h-4 w-4" />
-                          <span className="text-xs uppercase tracking-wider">ARC Age</span>
-                        </div>
-                        <p className="text-xl sm:text-2xl font-bold text-white">
-                          {formatArcAge(entry.arcAge)}
                         </p>
                       </div>
                     </div>

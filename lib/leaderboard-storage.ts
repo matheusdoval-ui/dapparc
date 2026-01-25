@@ -83,13 +83,11 @@ async function saveToFileImmediate(): Promise<void> {
     
     console.log(`💾 Saved ${walletStatsMap.size} wallet stats to file: ${DATA_FILE}`)
   } catch (error: any) {
-    // In production (Vercel), file system may be read-only
-    // This is expected and we should log but not fail
+    // In production (Vercel), file system may be read-only — never throw, only log
     if (error.code === 'EROFS' || error.code === 'EACCES') {
       console.warn('⚠️ File system is read-only (serverless environment), data will persist in memory only')
     } else {
-      console.error('❌ Error saving data file:', error)
-      throw error
+      console.warn('⚠️ Error saving data file (non-fatal):', error?.message ?? error)
     }
   }
 }
@@ -276,8 +274,25 @@ export async function recordWalletConsultation(
     console.log(`📋 All addresses in map:`, Array.from(walletStatsMap.keys()))
 
     // Always try to save immediately to ensure persistence
-    // Try both KV and file - don't fail if one doesn't work
-    
+    // Priority 1: Postgres (Neon) when DATABASE_URL is set
+    if (process.env.DATABASE_URL?.startsWith('postgres')) {
+      try {
+        const db = await import('./leaderboard-db')
+        if (db.isDbAvailable()) {
+          const ok = await db.upsertWallet(
+            normalizedAddress,
+            walletToSave.transactions,
+            walletToSave.firstConsultedAt,
+            walletToSave.lastConsultedAt,
+            walletToSave.consultCount
+          )
+          if (ok) console.log(`💾 Wallet saved to DB: ${normalizedAddress}`)
+        }
+      } catch (dbErr: any) {
+        console.warn('⚠️ Could not save to DB (non-critical):', dbErr?.message ?? dbErr)
+      }
+    }
+
     // Try to save to Vercel KV (non-blocking, only if env vars are set)
     if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
       try {
@@ -349,8 +364,28 @@ export function getWalletStatsSync(address: string): WalletStats | null {
 
 /**
  * Get wallet stats by address (async version)
+ * Uses Postgres when DATABASE_URL is set; otherwise storage.
  */
 export async function getWalletStats(address: string): Promise<WalletStats | null> {
+  if (process.env.DATABASE_URL?.startsWith('postgres')) {
+    try {
+      const db = await import('./leaderboard-db')
+      if (db.isDbAvailable()) {
+        const row = await db.getWalletFromDb(address)
+        if (!row) return null
+        return {
+          address: row.address,
+          transactions: row.transactions,
+          firstConsultedAt: row.first_consulted_at,
+          lastConsultedAt: row.last_consulted_at,
+          consultCount: row.consult_count,
+          arcAge: null,
+        }
+      }
+    } catch (e: any) {
+      console.warn('⚠️ getWalletStats from DB failed, using storage:', e?.message ?? e)
+    }
+  }
   await getStorage()
   return getWalletStatsSync(address)
 }
@@ -384,9 +419,29 @@ export function getLeaderboardSync(limit: number = 100): WalletStats[] {
 
 /**
  * Get leaderboard sorted by transactions and ARC Age (async version)
+ * Uses Postgres (Neon) when DATABASE_URL is set; otherwise KV/file/memory.
  */
 export async function getLeaderboard(limit: number = 100): Promise<WalletStats[]> {
-  // Ensure storage is loaded
+  if (process.env.DATABASE_URL?.startsWith('postgres')) {
+    try {
+      const db = await import('./leaderboard-db')
+      if (db.isDbAvailable()) {
+        const rows = await db.getLeaderboardFromDb(limit)
+        const mapped: WalletStats[] = rows.map((r) => ({
+          address: r.address,
+          transactions: r.transactions,
+          firstConsultedAt: r.first_consulted_at,
+          lastConsultedAt: r.last_consulted_at,
+          consultCount: r.consult_count,
+          arcAge: null,
+        }))
+        console.log(`📂 Leaderboard from DB: ${mapped.length} entries`)
+        return mapped
+      }
+    } catch (e: any) {
+      console.warn('⚠️ getLeaderboard from DB failed, using storage:', e?.message ?? e)
+    }
+  }
   await getStorage()
   return getLeaderboardSync(limit)
 }
@@ -406,8 +461,22 @@ export function getWalletRankSync(address: string): number | null {
 
 /**
  * Get rank for a specific address (async version)
+ * Uses Postgres when DATABASE_URL is set; otherwise storage.
  */
 export async function getWalletRank(address: string): Promise<number | null> {
+  if (process.env.DATABASE_URL?.startsWith('postgres')) {
+    try {
+      const db = await import('./leaderboard-db')
+      if (db.isDbAvailable()) {
+        const rows = await db.getLeaderboardFromDb(1000)
+        const addr = address.toLowerCase()
+        const i = rows.findIndex((r) => r.address === addr)
+        return i >= 0 ? i + 1 : null
+      }
+    } catch (e: any) {
+      console.warn('⚠️ getWalletRank from DB failed, using storage:', e?.message ?? e)
+    }
+  }
   await getStorage()
   return getWalletRankSync(address)
 }
