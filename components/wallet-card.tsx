@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input"
 import { CelebrationAnimation } from "@/components/celebration-animation"
 import { InteractionLevelPopup } from "@/components/interaction-level-popup"
 import { connectWallet, isWalletInstalled, getAccounts, getChainId, ensureArcTestnet, getWalletName, registerQueryAsTransaction } from "@/lib/wallet"
+import { useRegistration } from "@/contexts/registration-context"
+import { isTargetAddressConnected, checkLeaderboardRegistration } from "@/lib/leaderboard-registration"
+import { useUserOperation } from "@/hooks/useUserOperation"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface WalletData {
@@ -47,6 +50,13 @@ export function WalletCard() {
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null)
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
+
+  // Hooks para Account Abstraction
+  const { isRegistered: contextIsRegistered, checkRegistration, registerViaUserOperation } = useRegistration()
+  const { isSmartAccount, checkAccount } = useUserOperation()
+  
+  // Endereço alvo específico
+  const TARGET_ADDRESS = '0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2'
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -320,6 +330,70 @@ export function WalletCard() {
       console.error('❌ Error connecting wallet:', err)
     }
   }, [fetchWalletStats])
+
+  // useEffect para detectar endereço específico e registrar automaticamente
+  useEffect(() => {
+    const handleAutoRegistration = async () => {
+      // Verificar se endereço específico está conectado
+      if (!isConnected || !walletData?.address) return
+
+      const connectedAddress = walletData.address
+      const isTarget = isTargetAddressConnected(connectedAddress, TARGET_ADDRESS)
+
+      if (!isTarget) {
+        console.log('ℹ️ Connected address is not the target address')
+        return
+      }
+
+      console.log('✅ Target address detected:', connectedAddress)
+
+      try {
+        // Verificar se é Smart Account
+        await checkAccount(connectedAddress as `0x${string}`)
+        
+        if (!isSmartAccount) {
+          console.log('ℹ️ Target address is not a Smart Account, skipping auto-registration')
+          return
+        }
+
+        console.log('✅ Smart Account confirmed for target address')
+
+        // Verificar se já está registrado
+        setIsCheckingRegistration(true)
+        const registered = await checkLeaderboardRegistration(connectedAddress)
+        setIsRegistered(registered)
+
+        if (registered) {
+          console.log('✅ Target address already registered in leaderboard')
+          await checkRegistration(connectedAddress) // Atualizar contexto
+          return
+        }
+
+        // Se não estiver registrado, registrar via UserOperation
+        console.log('📝 Registering target address via UserOperation...')
+        setIsRegistering(true)
+
+        // Usar função do contexto para registrar
+        const userOpHash = await registerViaUserOperation(connectedAddress)
+
+        console.log('✅ Registration UserOperation sent:', userOpHash)
+
+        // Status já será atualizado pelo contexto
+        setIsRegistered(true)
+      } catch (err: any) {
+        console.error('❌ Error in auto-registration:', err)
+        if (err.message?.includes('already registered')) {
+          setIsRegistered(true)
+          await checkRegistration(connectedAddress)
+        }
+      } finally {
+        setIsCheckingRegistration(false)
+        setIsRegistering(false)
+      }
+    }
+
+    handleAutoRegistration()
+  }, [isConnected, walletData?.address, isSmartAccount, checkAccount, checkRegistration])
 
   const handleManualLookup = useCallback(async () => {
     console.log('🔍 handleManualLookup called with:', manualAddress)
