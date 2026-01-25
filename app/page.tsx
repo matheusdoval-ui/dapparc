@@ -122,7 +122,7 @@ export default function Home() {
                 {isTestnetActive ? 'Testnet Live' : 'Testnet Offline'}
               </span>
             </div>
-            <h1 className="text-balance text-4xl font-black tracking-[0.15em] sm:text-5xl lg:text-6xl mb-2 text-white">
+            <h1 className="text-balance text-3xl font-black tracking-tighter sm:text-4xl lg:text-5xl mb-2 text-white">
               ARCtx
             </h1>
             <p className="mx-auto mt-3 max-w-sm text-pretty text-sm tracking-wide text-white/50 sm:text-base">
