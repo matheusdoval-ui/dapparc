@@ -179,54 +179,55 @@ export async function signUserOperation(
  * @param senderAddress Endereço da Smart Account
  * @param nonce Nonce da Smart Account
  * @param signerAddress Endereço para assinar (opcional, se não fornecido, não assina)
- * @param registryContractAddress Endereço do contrato LeaderboardRegistry (opcional, para usar register() em vez de 0x)
+ * @param registryContractAddress Endereço do contrato LeaderboardRegistry (OBRIGATÓRIO - não pode ser undefined)
  */
 export async function createCheckInUserOperation(
   senderAddress: Address,
   nonce: bigint,
   signerAddress?: Address,
-  registryContractAddress?: Address
+  registryContractAddress: Address // OBRIGATÓRIO: não pode ser undefined
 ): Promise<Partial<UserOperation>> {
-  // Se registryContractAddress fornecido, usar register() em vez de callData vazio
-  let callData: Hex
-  
-  if (registryContractAddress) {
-    // Para Smart Accounts ERC-4337, precisamos usar execute() para chamar o contrato
-    // O callData será: execute(registryContractAddress, 0, register() encoded)
-    // Isso garantirá que a transação vá para o contrato, não para o próprio endereço
-    // O Raw input mostrará execute(), mas internamente conterá a chamada do register()
-    
-    // Primeiro, encodar função register() do contrato LeaderboardRegistry usando encodeFunctionData
-    const registerAbi = parseAbi(['function register() external'])
-    const registerCallData = encodeFunctionData({
-      abi: registerAbi,
-      functionName: 'register',
-      args: [],
-    })
-    
-    // Depois, encodar execute() da Smart Account com o contrato como destino
-    // O Raw input mostrará execute(), mas internamente conterá register()
-    // O campo 'to' no execute() será o contrato, não o próprio endereço
-    const executeAbi = parseAbi([
-      'function execute(address to, uint256 value, bytes calldata data) external',
-    ])
-    callData = encodeFunctionData({
-      abi: executeAbi,
-      functionName: 'execute',
-      args: [registryContractAddress, 0n, registerCallData], // to = contrato (NÃO próprio endereço), value = 0, data = register()
-    })
-    
-    console.log('📝 CallData gerado (execute -> register()):', callData)
-    console.log('📍 Contrato destino (to no execute):', registryContractAddress)
-    console.log('📋 Register() callData interno:', registerCallData)
-    console.log('✅ Transação será enviada para o contrato, não para próprio endereço')
-    console.log('✅ Raw input será preenchido (não será 0x)')
-  } else {
-    // Check-in: enviar para o próprio endereço com callData vazio
-    // AVISO: Isso resultará em Raw input = 0x
-    callData = '0x' as Hex
-    console.warn('⚠️ Using empty callData (0x) - Configure REGISTRY_CONTRACT_ADDRESS to use register()')
+  // OBRIGATÓRIO: registryContractAddress deve estar configurado
+  // Se não estiver, lançar erro (não permitir transações vazias)
+  if (!registryContractAddress) {
+    throw new Error('Registry contract address is required. Configure NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS in .env.local')
   }
+  
+  let callData: Hex
+
+  // Para Smart Accounts ERC-4337, precisamos usar execute() para chamar o contrato
+  // O callData será: execute(registryContractAddress, 0, register() encoded)
+  // Isso garantirá que a transação vá para o contrato, não para o próprio endereço
+  // O Raw input mostrará execute(), mas internamente conterá a chamada do register()
+  
+  // Primeiro, encodar função register() do contrato LeaderboardRegistry usando encodeFunctionData
+  // ABI: function register() external
+  const registerAbi = parseAbi(['function register() external'])
+  const registerCallData = encodeFunctionData({
+    abi: registerAbi,
+    functionName: 'register',
+    args: [],
+  })
+  
+  // Depois, encodar execute() da Smart Account com o contrato como destino
+  // O Raw input mostrará execute(), mas internamente conterá register()
+  // O campo 'to' no execute() será o contrato, NÃO o próprio endereço
+  const executeAbi = parseAbi([
+    'function execute(address to, uint256 value, bytes calldata data) external',
+  ])
+  callData = encodeFunctionData({
+    abi: executeAbi,
+    functionName: 'execute',
+    args: [registryContractAddress, 0n, registerCallData], // to = contrato (NÃO próprio endereço), value = 0, data = register()
+  })
+  
+  console.log('📝 CallData gerado usando encodeFunctionData:')
+  console.log('  - execute(contrato, 0, register())')
+  console.log('  - CallData completo:', callData)
+  console.log('📍 Contrato destino (to no execute):', registryContractAddress)
+  console.log('📋 Register() callData interno:', registerCallData)
+  console.log('✅ Transação será enviada para o contrato, não para próprio endereço')
+  console.log('✅ Raw input será preenchido (não será 0x)')
 
   // Obter gas prices
   const gasPrices = await getGasPrices()
