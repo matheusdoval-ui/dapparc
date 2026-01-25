@@ -27,6 +27,9 @@ contract Leaderboard {
     uint256 public totalRegistrations;
     
     // Event emitted when a new user registers
+    event Registered(address indexed user);
+    
+    // Evento adicional para compatibilidade (mantém NewEntry também)
     event NewEntry(
         address indexed user,
         uint256 timestamp,
@@ -64,7 +67,10 @@ contract Leaderboard {
         registeredUsers.push(msg.sender);
         totalRegistrations++;
         
-        // Emit event for frontend filtering
+        // Emit simple Registered event (as requested)
+        emit Registered(msg.sender);
+        
+        // Also emit NewEntry for compatibility
         emit NewEntry(
             msg.sender,
             block.timestamp,
