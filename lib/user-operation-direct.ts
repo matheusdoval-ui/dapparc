@@ -30,6 +30,11 @@ const REGISTRY_CONTRACT_ADDRESS = (
 /**
  * Cria uma UserOperation que chama register() diretamente no contrato
  * O callData será a chamada do register() codificada (não 0x)
+ * 
+ * IMPORTANTE: Para Smart Accounts, o callData precisa chamar execute() da Smart Account
+ * que por sua vez chama o contrato. O Raw input mostrará execute(), mas internamente
+ * conterá a chamada do register().
+ * 
  * @param senderAddress Endereço da Smart Account
  * @param nonce Nonce da Smart Account
  * @param signerAddress Endereço para assinar
@@ -43,17 +48,33 @@ export async function createRegisterUserOperation(
     throw new Error('Registry contract address not configured')
   }
 
-  // Encodar função register() usando encodeFunctionData
-  // Este será o callData que preencherá o Raw input (não será 0x)
+  // Para Smart Accounts ERC-4337, precisamos usar execute() para chamar o contrato
+  // O callData será: execute(registryContractAddress, 0, register() encoded)
+  // Isso garantirá que a transação vá para o contrato, não para o próprio endereço
+  
+  // Primeiro, encodar função register() do contrato LeaderboardRegistry
   const registerAbi = parseAbi(['function register() external'])
-  const callData = encodeFunctionData({
+  const registerCallData = encodeFunctionData({
     abi: registerAbi,
     functionName: 'register',
     args: [],
   })
+  
+  // Depois, encodar execute() da Smart Account com o contrato como destino
+  // O Raw input mostrará execute(), mas internamente conterá register()
+  const executeAbi = parseAbi([
+    'function execute(address to, uint256 value, bytes calldata data) external',
+  ])
+  const callData = encodeFunctionData({
+    abi: executeAbi,
+    functionName: 'execute',
+    args: [REGISTRY_CONTRACT_ADDRESS as Address, 0n, registerCallData], // to = contrato, value = 0, data = register()
+  })
 
-  console.log('📝 CallData gerado (register()):', callData)
-  console.log('📍 Contrato destino:', REGISTRY_CONTRACT_ADDRESS)
+  console.log('📝 CallData gerado (execute -> register()):', callData)
+  console.log('📍 Contrato destino (to no execute):', REGISTRY_CONTRACT_ADDRESS)
+  console.log('📋 Register() callData interno:', registerCallData)
+  console.log('✅ Transação será enviada para o contrato, não para próprio endereço')
 
   // Obter gas prices
   const gasPrices = await getGasPrices()

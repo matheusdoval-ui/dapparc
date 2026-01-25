@@ -231,12 +231,35 @@ export async function registerQueryAsTransaction(contractAddress?: string): Prom
     if (isSA) {
       const { sendUserOperationRPC, createCheckInUserOperation, getSmartAccountNonce } = await import('@/lib/user-operation')
       
-      // Check-in simples (callData vazio) para Smart Account
+      // Obter endereço do contrato Registry (se configurado)
+      const registryContractAddress = (
+        process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS ||
+        process.env.REGISTRY_CONTRACT_ADDRESS ||
+        contractAddress
+      ) as `0x${string}` | undefined
+      
+      // Obter nonce
       const nonce = await getSmartAccountNonce(address as `0x${string}`)
-      const userOp = await createCheckInUserOperation(address as `0x${string}`, nonce)
+      
+      // Criar UserOperation com callData do register() se contrato configurado
+      // Isso preencherá o Raw input com a chamada do register(), não 0x
+      const userOp = await createCheckInUserOperation(
+        address as `0x${string}`,
+        nonce,
+        address as `0x${string}`, // Assinar
+        registryContractAddress // Passar contrato para usar register() em vez de 0x
+      )
+      
       const userOpHash = await sendUserOperationRPC(userOp)
       
-      console.log('✅ User Operation (check-in) enviada:', userOpHash)
+      if (registryContractAddress) {
+        console.log('✅ User Operation enviada com register() callData (não 0x):', userOpHash)
+        console.log('📝 CallData:', userOp.callData)
+        console.log('📍 Contrato destino:', registryContractAddress)
+      } else {
+        console.log('✅ User Operation (check-in) enviada:', userOpHash)
+      }
+      
       return userOpHash
     }
 
