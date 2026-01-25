@@ -441,7 +441,7 @@ export function WalletCard() {
         <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-arc-accent/25 via-arc-accent/10 to-arc-accent/25 blur-xl opacity-80" />
         
         {/* Main card — dimensões fixas: não altera ao conectar */}
-        <div className="relative flex h-[420px] min-h-[420px] max-h-[420px] w-full flex-col overflow-hidden rounded-2xl border border-arc-accent/15 bg-black/40 p-5 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-arc-accent/40 hover:shadow-[0_0_32px_rgba(0,174,239,0.2)]">
+        <div className="relative flex h-[420px] min-h-[420px] max-h-[420px] w-full flex-col overflow-hidden rounded-2xl border border-arc-accent/15 bg-white/90 p-5 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-arc-accent/40 hover:shadow-[0_0_32px_rgba(0,174,239,0.2)] dark:bg-black/40">
           {/* Decorative corner accents */}
           <div className="absolute left-0 top-0 h-14 w-14 rounded-tl-2xl border-l-2 border-t-2 border-arc-accent/40" />
           <div className="absolute bottom-0 right-0 h-14 w-14 rounded-br-2xl border-b-2 border-r-2 border-arc-accent/40" />
@@ -520,9 +520,9 @@ export function WalletCard() {
 
               <div className="mt-4 w-full space-y-2">
                 <div className="flex items-center gap-2 text-center text-[10px] text-muted-foreground/80">
-                  <div className="h-px flex-1 bg-white/10" />
+                  <div className="h-px flex-1 bg-foreground/10" />
                   <span>Or check address manually</span>
-                  <div className="h-px flex-1 bg-white/10" />
+                  <div className="h-px flex-1 bg-foreground/10" />
                 </div>
                 <p className="text-center text-[10px] text-muted-foreground/60">
                   Paste ARC address (0x...) to check interactions

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Activity, Trophy, ExternalLink, RefreshCw, Sparkles, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface LeaderboardEntry {
   address: string
@@ -98,41 +99,44 @@ export default function LeaderboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-arc-mesh text-white flex items-center justify-center">
+      <main className="min-h-screen bg-arc-mesh text-foreground flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
             <div className="h-16 w-16 animate-spin rounded-full border-4 border-arc-accent/30 border-t-arc-accent mx-auto mb-6" />
             <Sparkles className="h-8 w-8 text-arc-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
           </div>
-          <p className="text-white/70 text-lg">Loading leaderboard...</p>
+          <p className="text-muted-foreground text-lg">Loading leaderboard...</p>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-arc-mesh text-white relative overflow-hidden">
+    <main className="min-h-screen bg-arc-mesh text-foreground relative overflow-hidden">
 
       {/* Header */}
-      <div className="relative border-b border-arc-accent/20 bg-black/40 backdrop-blur-xl shadow-[0_0_40px_rgba(0,174,239,0.08)]">
+      <div className="relative border-b border-arc-accent/20 bg-white/80 backdrop-blur-xl shadow-[0_0_40px_rgba(0,174,239,0.06)] dark:bg-black/40 dark:shadow-[0_0_40px_rgba(0,174,239,0.08)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex items-center justify-between mb-8">
             <a
               href="/"
-              className="group flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm tracking-wide text-white/70 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent hover:shadow-[0_0_16px_rgba(0,174,239,0.2)]"
+              className="group flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm tracking-wide text-foreground/70 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent hover:shadow-[0_0_16px_rgba(0,174,239,0.2)]"
             >
               <span>←</span>
               <span>Back to Home</span>
             </a>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
             <Button
               onClick={fetchLeaderboard}
               variant="outline"
-              className="group border-arc-accent/20 bg-black/30 hover:border-arc-accent/50 hover:bg-arc-accent/10 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)] transition-all duration-200"
+              className="group border-arc-accent/20 bg-white/60 hover:border-arc-accent/50 hover:bg-arc-accent/10 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)] dark:bg-black/30 transition-all duration-200"
               disabled={loading}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
               Refresh
             </Button>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
@@ -143,10 +147,10 @@ export default function LeaderboardPage() {
               </div>
             </div>
             <div>
-              <h1 className="text-4xl sm:text-5xl font-black mb-3 tracking-[0.1em] bg-gradient-to-r from-white via-arc-accent to-cyan-300 bg-clip-text text-transparent">
+              <h1 className="text-4xl sm:text-5xl font-black mb-3 tracking-[0.1em] bg-gradient-to-r from-foreground via-arc-accent to-cyan-300 bg-clip-text text-transparent dark:from-white">
                 ARC Activity Leaderboard
               </h1>
-              <p className="text-white/60 text-lg tracking-wide">
+              <p className="text-muted-foreground text-lg tracking-wide">
                 Ranking of the most active wallets on ARC Network
               </p>
               <p className="text-arc-accent/80 text-sm mt-2 font-medium">
@@ -171,15 +175,15 @@ export default function LeaderboardPage() {
               <Trophy className="h-6 w-6 text-arc-accent" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-bold tracking-wide text-white mb-2">How to Appear in the Leaderboard</h3>
-              <p className="text-white/80 text-sm mb-3">
+              <h3 className="text-lg font-bold tracking-wide text-foreground mb-2">How to Appear in the Leaderboard</h3>
+              <p className="text-foreground/80 text-sm mb-3">
                 To appear in the ARC Activity Leaderboard, you need to:
               </p>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-white/70 mb-4">
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground mb-4">
                 <li>Connect your wallet using MetaMask or Rabby Wallet on the home page</li>
                 <li>Your wallet is added automatically and ranked by <strong>number of transactions</strong> (higher = better rank)</li>
               </ol>
-              <p className="text-xs text-white/50 mt-3 italic">
+              <p className="text-xs text-muted-foreground mt-3 italic">
                 Note: Manual wallet lookups are not added. Only connected wallets appear. Rank is by transaction count and is preserved.
               </p>
             </div>
@@ -202,12 +206,12 @@ export default function LeaderboardPage() {
             </div>
           </Card>
         ) : leaderboard.length === 0 ? (
-          <Card className="border-arc-accent/15 bg-black/30 backdrop-blur-md p-12 text-center shadow-[0_0_30px_rgba(0,174,239,0.08)]">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/5 mb-6">
-              <Trophy className="h-10 w-10 text-white/30" />
+          <Card className="border-arc-accent/15 bg-white/60 backdrop-blur-md p-12 text-center shadow-[0_0_30px_rgba(0,174,239,0.06)] dark:bg-black/30 dark:shadow-[0_0_30px_rgba(0,174,239,0.08)]">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-foreground/5 mb-6">
+              <Trophy className="h-10 w-10 text-muted-foreground" />
             </div>
-            <p className="text-white/70 mb-2 text-lg font-medium">No leaderboard data available</p>
-            <p className="text-white/60 text-sm">
+            <p className="text-foreground/80 mb-2 text-lg font-medium">No leaderboard data available</p>
+            <p className="text-muted-foreground text-sm">
               Connect your wallet on the home page to appear here. Entries are ranked by number of transactions.
             </p>
           </Card>
