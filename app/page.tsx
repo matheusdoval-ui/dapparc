@@ -48,6 +48,12 @@ const BRAZILIAN_DAPPS = [
     href: "https://arccryptorace.xyz/",
     tags: ["Game", "Race"],
   },
+  {
+    name: "CrowdMint",
+    description: "Decentralized crowdfunding. Back campaigns with USDC, track on-chain, unclaimed funds earn yield.",
+    href: "https://www.crowdmint.live/",
+    tags: ["Crowdfunding", "USDC", "Web3"],
+  },
 ] as const
 
 export default function Home() {
@@ -83,16 +89,16 @@ export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-arc-mesh px-4 py-12 text-foreground">
       {/* Navigation */}
-      <nav className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-4 border-b border-arc-accent/20 bg-white/80 backdrop-blur-xl px-6 py-3 sm:px-12 shadow-[0_0_30px_rgba(0,174,239,0.06)] dark:bg-black/40 dark:shadow-[0_0_30px_rgba(0,174,239,0.08)]">
+      <nav className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 border-b border-arc-accent/20 bg-white/80 backdrop-blur-xl px-4 py-2 sm:px-6 shadow-[0_0_30px_rgba(0,174,239,0.06)] dark:bg-black/40 dark:shadow-[0_0_30px_rgba(0,174,239,0.08)]">
         <a
           href="/"
-          className="flex items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-foreground/90 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent"
+          className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1 text-foreground/90 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent"
           aria-label="ARCtx home"
         >
-          <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />
-          <span className="text-base font-bold tracking-tight sm:text-lg">ARCtx</span>
+          <img src="/favicon.svg" alt="" className="h-6 w-6 shrink-0" />
+          <span className="text-sm font-bold tracking-tight sm:text-base">ARCtx</span>
         </a>
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {[
             { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
             { href: 'https://docs.arc.network/arc/references/contract-addresses', icon: BookOpen, label: 'Docs', external: true },
@@ -102,9 +108,9 @@ export default function Home() {
               key={label}
               href={href}
               {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-              className="flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm tracking-wide text-foreground/70 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent hover:shadow-[0_0_16px_rgba(0,174,239,0.2)]"
+              className="flex items-center gap-1 rounded-lg border border-transparent px-2.5 py-1.5 text-xs sm:text-sm tracking-wide text-foreground/70 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent hover:shadow-[0_0_16px_rgba(0,174,239,0.2)]"
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>{label}</span>
             </a>
           ))}
@@ -113,7 +119,7 @@ export default function Home() {
       </nav>
 
       {/* Main Content: ARCtx + wallet + stats, then Brazilian DApps abaixo */}
-      <div className="relative z-10 flex w-full max-w-4xl flex-col items-center gap-8 px-2 pt-4">
+      <div className="relative z-10 flex w-full max-w-4xl flex-col items-center gap-8 px-2 pt-4 pb-24">
         <div className="flex flex-col items-center text-center">
           <header className="mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-arc-accent/20 bg-white/90 px-4 py-2 backdrop-blur-md shadow-[0_0_20px_rgba(0,174,239,0.08)] dark:bg-black/40 dark:shadow-[0_0_20px_rgba(0,174,239,0.1)]">
@@ -227,7 +233,7 @@ export default function Home() {
         </section>
 
         {/* Brazilian DApps — compacto */}
-        <section className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <section className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500 mb-4">
           <div className="mb-2 flex items-center gap-1.5">
             <span className="h-5 w-0.5 rounded-full bg-[#009c3b] shadow-[0_0_6px_rgba(0,156,59,0.5)]" />
             <span className="h-5 w-0.5 rounded-full bg-[#ffdf00] shadow-[0_0_6px_rgba(255,223,0,0.4)]" />
