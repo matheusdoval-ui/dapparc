@@ -273,9 +273,15 @@ export async function recordWalletConsultation(
     console.log(`📦 Current map size after: ${walletStatsMap.size}`)
     console.log(`📋 All addresses in map:`, Array.from(walletStatsMap.keys()))
 
+    const hasDb = !!process.env.DATABASE_URL?.startsWith('postgres')
+    const hasKv = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
+    if (!hasDb && !hasKv) {
+      console.warn('⚠️ Leaderboard: No DATABASE_URL or Vercel KV configured. Data will not persist on Vercel (file system is read-only). Set DATABASE_URL or KV_REST_* for persistent leaderboard.')
+    }
+
     // Always try to save immediately to ensure persistence
     // Priority 1: Postgres (Neon) when DATABASE_URL is set
-    if (process.env.DATABASE_URL?.startsWith('postgres')) {
+    if (hasDb) {
       try {
         const db = await import('./leaderboard-db')
         if (db.isDbAvailable()) {
@@ -293,8 +299,8 @@ export async function recordWalletConsultation(
       }
     }
 
-    // Try to save to Vercel KV (non-blocking, only if env vars are set)
-    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    // Try to save to Vercel KV (only if env vars are set)
+    if (hasKv) {
       try {
         // Dynamic import to avoid loading if not needed
         const kvModule = await import('./leaderboard-storage-kv')

@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const address = searchParams.get('address')
-    const connected = searchParams.get('connected') === 'true' // Only true if explicitly passed
+    const connectedParam = searchParams.get('connected')
+    const connected = connectedParam === 'true' || connectedParam === '1'
 
     // Validate address parameter
     if (!address) {
@@ -50,26 +51,39 @@ export async function GET(request: NextRequest) {
 
     // Record wallet consultation for leaderboard (must await so it persists before serverless exits)
     // Only records if wallet was connected. Manual lookups (connected=false) are NOT added.
+    let leaderboardRecorded = false
+    let leaderboardReason: string | undefined
     try {
       const result = await recordWalletConsultation(normalizedAddress, txCount, null, connected)
+      leaderboardRecorded = result.recorded
+      leaderboardReason = result.reason
       if (result.recorded) {
-        console.log(`✅ Wallet consultation recorded to leaderboard: ${normalizedAddress}, TX: ${txCount}, Connected: ${connected}`)
+        console.log(`✅ Wallet consultation recorded to leaderboard: ${normalizedAddress}, TX: ${txCount}, connected=${connected}`)
       } else {
-        console.log(`⛔ Wallet consultation not recorded: ${result.reason}`)
+        console.log(`⛔ Wallet consultation not recorded: ${result.reason} (connected=${connected})`)
       }
     } catch (err) {
       console.error('Error recording wallet consultation (non-critical):', err)
-      // Still return stats; don't fail the request
+      leaderboardReason = err instanceof Error ? err.message : 'Recording failed'
     }
 
-    // Return wallet statistics
-    return NextResponse.json({
+    const json = {
       address: normalizedAddress,
       txCount: txCount,
       balance: balanceUSDC,
       balanceFormatted: balanceUSDC.toFixed(2),
       network: 'Arc Testnet',
       lastUpdated: new Date().toISOString(),
+      leaderboardRecorded,
+      ...(leaderboardReason && { leaderboardReason }),
+    }
+
+    return new NextResponse(JSON.stringify(json), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
     })
   } catch (error) {
     console.error('Error fetching wallet stats:', error)

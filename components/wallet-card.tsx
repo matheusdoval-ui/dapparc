@@ -215,6 +215,10 @@ export function WalletCard() {
         console.error('❌ Invalid data structure:', data)
         throw new Error('Missing required fields in response')
       }
+
+      if (isWalletConnected && data.leaderboardRecorded === false) {
+        console.warn('⚠️ Leaderboard: wallet not recorded.', data.leaderboardReason || 'Connect on home page to appear in leaderboard.')
+      }
       
       const newWalletData = {
         address: data.address,

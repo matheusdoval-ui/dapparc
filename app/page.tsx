@@ -23,6 +23,30 @@ const BRAZILIAN_DAPPS = [
     href: "https://www.arc-dex.xyz/",
     tags: ["DeFi", "Trading", "DEX"],
   },
+  {
+    name: "Arc Invoice",
+    description: "Instant payments in USDC & EURC on Arc Network.",
+    href: "https://arcinvoice.xyz/",
+    tags: ["Payments", "USDC", "EURC"],
+  },
+  {
+    name: "Easy Faucet Arc",
+    description: "Get testnet USDC and tokens for Arc Network.",
+    href: "https://easyfaucetarc.xyz/",
+    tags: ["Faucet", "Testnet"],
+  },
+  {
+    name: "Arc Index",
+    description: "Explore and index Arc Network ecosystem.",
+    href: "https://arcindex.xyz/",
+    tags: ["Index", "Explorer"],
+  },
+  {
+    name: "Arc Crypto Race",
+    description: "Crypto race game on Arc Network.",
+    href: "https://arccryptorace.xyz/",
+    tags: ["Game", "Race"],
+  },
 ] as const
 
 export default function Home() {
