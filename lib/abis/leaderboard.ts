@@ -98,36 +98,6 @@ export const LEADERBOARD_ABI = [
         type: 'address',
       },
     ],
-    name: 'Registered',
-    type: 'event',
-  },
-  {
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'user',
-        type: 'address',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'timestamp',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'blockNumber',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'index',
-        type: 'uint256',
-      },
-    ],
     name: 'NewEntry',
     type: 'event',
   },

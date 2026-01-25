@@ -83,43 +83,21 @@ export async function GET(request: NextRequest) {
         const currentBlock = await provider.getBlockNumber()
         const fromBlock = Math.max(0, currentBlock - 10000) // Last ~10k blocks
         
-        // Try Registered event first (simpler)
-        try {
-          const registeredFilter = contract.filters.Registered()
-          const registeredEvents = await contract.queryFilter(registeredFilter, fromBlock, 'latest')
-          
-          for (const event of registeredEvents) {
-            if (event.args && event.args[0]) {
-              const userAddress = event.args[0].toLowerCase()
-              // Check if already added
-              if (!users.find(u => u.address === userAddress)) {
-                users.push({
-                  address: userAddress,
-                  timestamp: event.blockNumber ? (await provider.getBlock(event.blockNumber)).timestamp * 1000 : Date.now(),
-                  blockNumber: event.blockNumber || 0,
-                  index: users.length,
-                })
-              }
-            }
-          }
-        } catch (registeredError) {
-          console.warn('Could not filter Registered events, trying NewEntry:', registeredError)
-        }
-        
-        // Fallback to NewEntry event
+        // Filter NewEntry events (simples: NewEntry(address user))
         const filter = contract.filters.NewEntry()
         const events = await contract.queryFilter(filter, fromBlock, 'latest')
         
         for (const event of events) {
-          if (event.args) {
-            const userAddress = event.args.user.toLowerCase()
+          if (event.args && event.args[0]) {
+            const userAddress = event.args[0].toLowerCase()
             // Check if already added
             if (!users.find(u => u.address === userAddress)) {
+              const block = event.blockNumber ? await provider.getBlock(event.blockNumber) : null
               users.push({
                 address: userAddress,
-                timestamp: Number(event.args.timestamp) * 1000,
-                blockNumber: Number(event.args.blockNumber),
-                index: Number(event.args.index),
+                timestamp: block ? Number(block.timestamp) * 1000 : Date.now(),
+                blockNumber: event.blockNumber || 0,
+                index: users.length,
               })
             }
           }

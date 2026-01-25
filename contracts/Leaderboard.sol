@@ -26,16 +26,8 @@ contract Leaderboard {
     // Total registrations
     uint256 public totalRegistrations;
     
-    // Event emitted when a new user registers
-    event Registered(address indexed user);
-    
-    // Evento adicional para compatibilidade (mantém NewEntry também)
-    event NewEntry(
-        address indexed user,
-        uint256 timestamp,
-        uint256 blockNumber,
-        uint256 index
-    );
+    // Event emitted when a new user registers (simples, como solicitado)
+    event NewEntry(address indexed user);
     
     // Modifier to restrict functions to owner
     modifier onlyOwner() {
@@ -67,16 +59,8 @@ contract Leaderboard {
         registeredUsers.push(msg.sender);
         totalRegistrations++;
         
-        // Emit simple Registered event (as requested)
-        emit Registered(msg.sender);
-        
-        // Also emit NewEntry for compatibility
-        emit NewEntry(
-            msg.sender,
-            block.timestamp,
-            block.number,
-            registrationIndex[msg.sender]
-        );
+        // Emit simple NewEntry event (as requested)
+        emit NewEntry(msg.sender);
     }
     
     /**
