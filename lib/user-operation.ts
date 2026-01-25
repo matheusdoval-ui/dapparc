@@ -196,21 +196,22 @@ export async function createCheckInUserOperation(
   let callData: Hex
 
   // Para Smart Accounts ERC-4337, precisamos usar execute() para chamar o contrato
-  // O callData será: execute(registryContractAddress, 0, register() encoded)
+  // O callData será: execute(registryContractAddress, 0, mint() encoded)
   // Isso garantirá que a transação vá para o contrato, não para o próprio endereço
-  // O Raw input mostrará execute(), mas internamente conterá a chamada do register()
+  // O Raw input mostrará execute(), mas internamente conterá a chamada do mint()
   
-  // Primeiro, encodar função register() do contrato LeaderboardRegistry usando encodeFunctionData
-  // ABI: function register() external
-  const registerAbi = parseAbi(['function register() external'])
-  const registerCallData = encodeFunctionData({
-    abi: registerAbi,
-    functionName: 'register',
+  // Primeiro, encodar função mint() do contrato Leaderboard usando encodeFunctionData
+  // ABI: function mint() external
+  // O contrato Leaderboard usa mint() em vez de register()
+  const mintAbi = parseAbi(['function mint() external'])
+  const mintCallData = encodeFunctionData({
+    abi: mintAbi,
+    functionName: 'mint',
     args: [],
   })
   
   // Depois, encodar execute() da Smart Account com o contrato como destino
-  // O Raw input mostrará execute(), mas internamente conterá register()
+  // O Raw input mostrará execute(), mas internamente conterá mint()
   // O campo 'to' no execute() será o contrato, NÃO o próprio endereço
   const executeAbi = parseAbi([
     'function execute(address to, uint256 value, bytes calldata data) external',
@@ -218,14 +219,14 @@ export async function createCheckInUserOperation(
   callData = encodeFunctionData({
     abi: executeAbi,
     functionName: 'execute',
-    args: [registryContractAddress, 0n, registerCallData], // to = contrato (NÃO próprio endereço), value = 0, data = register()
+    args: [registryContractAddress, 0n, mintCallData], // to = contrato (NÃO próprio endereço), value = 0, data = mint()
   })
   
   console.log('📝 CallData gerado usando encodeFunctionData:')
-  console.log('  - execute(contrato, 0, register())')
+  console.log('  - execute(contrato, 0, mint())')
   console.log('  - CallData completo:', callData)
   console.log('📍 Contrato destino (to no execute):', registryContractAddress)
-  console.log('📋 Register() callData interno:', registerCallData)
+  console.log('📋 Mint() callData interno:', mintCallData)
   console.log('✅ Transação será enviada para o contrato, não para próprio endereço')
   console.log('✅ Raw input será preenchido (não será 0x)')
 

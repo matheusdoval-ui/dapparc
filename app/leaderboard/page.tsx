@@ -11,29 +11,82 @@ interface LeaderboardEntry {
   transactions: number
   firstTransactionTimestamp: number | null
   rank: number
+  contractRegistered?: boolean
+  contractTimestamp?: number
+  contractIndex?: number
 }
 
 export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [contractUsers, setContractUsers] = useState<any[]>([])
 
   const fetchLeaderboard = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const response = await fetch('/api/leaderboard?limit=100')
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to fetch leaderboard')
+      // Fetch both leaderboard data and contract users
+      const [leaderboardResponse, contractResponse] = await Promise.allSettled([
+        fetch('/api/leaderboard?limit=100'),
+        fetch('/api/leaderboard-users'),
+      ])
+
+      // Process leaderboard data
+      let raw: LeaderboardEntry[] = []
+      if (leaderboardResponse.status === 'fulfilled' && leaderboardResponse.value.ok) {
+        const data = await leaderboardResponse.value.json()
+        raw = Array.isArray(data.leaderboard) ? data.leaderboard : []
       }
 
-      const data = await response.json()
-      const raw = Array.isArray(data.leaderboard) ? data.leaderboard : []
+      // Process contract users
+      let contractUsersData: any[] = []
+      if (contractResponse.status === 'fulfilled' && contractResponse.value.ok) {
+        const contractData = await contractResponse.value.json()
+        contractUsersData = Array.isArray(contractData.users) ? contractData.users : []
+        setContractUsers(contractUsersData)
+        console.log('✅ Contract users loaded:', contractUsersData.length)
+      } else {
+        console.warn('⚠️ Could not load contract users:', contractResponse.status === 'rejected' ? contractResponse.reason : 'Unknown error')
+      }
+
+      // Merge contract users with leaderboard data
+      const contractUsersMap = new Map(
+        contractUsersData.map((user: any) => [user.address.toLowerCase(), user])
+      )
+
+      // Enhance leaderboard entries with contract data
+      const enhanced = raw.map((entry) => {
+        const contractUser = contractUsersMap.get(entry.address.toLowerCase())
+        return {
+          ...entry,
+          contractRegistered: !!contractUser,
+          contractTimestamp: contractUser?.timestamp || null,
+          contractIndex: contractUser?.index || null,
+        }
+      })
+
+      // Add contract users that are not in leaderboard yet
+      for (const contractUser of contractUsersData) {
+        const exists = enhanced.find(
+          (e) => e.address.toLowerCase() === contractUser.address.toLowerCase()
+        )
+        if (!exists) {
+          enhanced.push({
+            address: contractUser.address,
+            transactions: 0,
+            firstTransactionTimestamp: contractUser.timestamp,
+            rank: 0, // Will be set after sorting
+            contractRegistered: true,
+            contractTimestamp: contractUser.timestamp,
+            contractIndex: contractUser.index,
+          })
+        }
+      }
+
       // Sort by transactions (desc) – rank = position; safe for missing values
-      const sorted = [...raw].sort(
+      const sorted = [...enhanced].sort(
         (a, b) => (Number(b?.transactions) || 0) - (Number(a?.transactions) || 0)
       )
       const withRank = sorted.map((e, i) => ({ ...e, rank: i + 1 }))
@@ -214,6 +267,11 @@ export default function LeaderboardPage() {
             <p className="text-muted-foreground text-sm">
               Connect your wallet on the home page to appear here. Entries are ranked by number of transactions.
             </p>
+            {contractUsers.length > 0 && (
+              <p className="text-muted-foreground text-xs mt-2">
+                {contractUsers.length} user{contractUsers.length !== 1 ? 's' : ''} registered on-chain via contract
+              </p>
+            )}
           </Card>
         ) : (
           <div className="space-y-3">
