@@ -196,7 +196,7 @@ export async function createCheckInUserOperation(
     // Isso garantirá que a transação vá para o contrato, não para o próprio endereço
     // O Raw input mostrará execute(), mas internamente conterá a chamada do register()
     
-    // Primeiro, encodar função register() do contrato LeaderboardRegistry
+    // Primeiro, encodar função register() do contrato LeaderboardRegistry usando encodeFunctionData
     const registerAbi = parseAbi(['function register() external'])
     const registerCallData = encodeFunctionData({
       abi: registerAbi,
@@ -206,23 +206,26 @@ export async function createCheckInUserOperation(
     
     // Depois, encodar execute() da Smart Account com o contrato como destino
     // O Raw input mostrará execute(), mas internamente conterá register()
+    // O campo 'to' no execute() será o contrato, não o próprio endereço
     const executeAbi = parseAbi([
       'function execute(address to, uint256 value, bytes calldata data) external',
     ])
     callData = encodeFunctionData({
       abi: executeAbi,
       functionName: 'execute',
-      args: [registryContractAddress, 0n, registerCallData], // to = contrato, value = 0, data = register()
+      args: [registryContractAddress, 0n, registerCallData], // to = contrato (NÃO próprio endereço), value = 0, data = register()
     })
     
     console.log('📝 CallData gerado (execute -> register()):', callData)
     console.log('📍 Contrato destino (to no execute):', registryContractAddress)
     console.log('📋 Register() callData interno:', registerCallData)
     console.log('✅ Transação será enviada para o contrato, não para próprio endereço')
+    console.log('✅ Raw input será preenchido (não será 0x)')
   } else {
     // Check-in: enviar para o próprio endereço com callData vazio
+    // AVISO: Isso resultará em Raw input = 0x
     callData = '0x' as Hex
-    console.log('ℹ️ Using empty callData (0x) for check-in')
+    console.warn('⚠️ Using empty callData (0x) - Configure REGISTRY_CONTRACT_ADDRESS to use register()')
   }
 
   // Obter gas prices

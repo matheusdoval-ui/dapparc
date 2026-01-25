@@ -142,7 +142,7 @@ export default function DashboardPage() {
 
   const activeAddressesChartData =
     activeAddresses?.dates.map((date, i) => ({
-      date: new Date(date).toLocaleDateString("pt-BR", { month: "short", day: "numeric" }),
+      date: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       addresses: activeAddresses.addresses[i],
     })) || []
 
@@ -154,10 +154,10 @@ export default function DashboardPage() {
           <Link
             href="/"
             className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1 text-foreground/90 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent"
-            aria-label="Voltar para home"
+            aria-label="Back to home"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-semibold">Voltar</span>
+            <span className="text-sm font-semibold">Back</span>
           </Link>
           <div className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-arc-accent" />
@@ -184,7 +184,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-arc-accent border-t-transparent" />
-              <p className="text-sm text-muted-foreground">Carregando métricas da Arc Network Testnet...</p>
+              <p className="text-sm text-muted-foreground">Loading Arc Network Testnet metrics...</p>
             </div>
           </div>
         ) : (
@@ -194,7 +194,7 @@ export default function DashboardPage() {
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-arc-accent" />
-                  <h2 className="text-lg font-bold">Volume de Transações</h2>
+                  <h2 className="text-lg font-bold">Transaction Volume</h2>
                 </div>
                 <span className="rounded-full border border-arc-accent/30 bg-arc-accent/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-arc-accent">
                   Arc Network Testnet
@@ -202,7 +202,7 @@ export default function DashboardPage() {
               </div>
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Diárias</h3>
+                  <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Daily</h3>
                   {networkStats?.daily && networkStats.daily.length > 0 ? (
                     <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={networkStats.daily}>
@@ -220,11 +220,11 @@ export default function DashboardPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="py-10 text-center text-sm text-muted-foreground">Dados não disponíveis</p>
+                    <p className="py-10 text-center text-sm text-muted-foreground">Data not available</p>
                   )}
                 </div>
                 <div>
-                  <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Semanais</h3>
+                  <h3 className="mb-3 text-sm font-semibold text-muted-foreground">Weekly</h3>
                   {networkStats?.weekly && networkStats.weekly.length > 0 ? (
                     <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={networkStats.weekly}>
@@ -242,7 +242,7 @@ export default function DashboardPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="py-10 text-center text-sm text-muted-foreground">Dados não disponíveis</p>
+                    <p className="py-10 text-center text-sm text-muted-foreground">Data not available</p>
                   )}
                 </div>
               </div>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-arc-accent" />
-                  <h2 className="text-lg font-bold">Crescimento de Endereços Ativos</h2>
+                  <h2 className="text-lg font-bold">Active Addresses Growth</h2>
                 </div>
                 <span className="rounded-full border border-arc-accent/30 bg-arc-accent/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-arc-accent">
                   Arc Network Testnet
@@ -292,7 +292,7 @@ export default function DashboardPage() {
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Coins className="h-5 w-5 text-arc-accent" />
-                  <h2 className="text-lg font-bold">Top 10 Tokens Mais Usados</h2>
+                  <h2 className="text-lg font-bold">Top 10 Most Used Tokens</h2>
                 </div>
                 <span className="rounded-full border border-arc-accent/30 bg-arc-accent/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-arc-accent">
                   Arc Network Testnet
@@ -361,7 +361,7 @@ export default function DashboardPage() {
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Globe className="h-5 w-5 text-arc-accent" />
-                  <h2 className="text-lg font-bold">Uso de dApps</h2>
+                  <h2 className="text-lg font-bold">dApp Usage</h2>
                 </div>
                 <span className="rounded-full border border-arc-accent/30 bg-arc-accent/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-arc-accent">
                   Arc Network Testnet
@@ -423,9 +423,9 @@ export default function DashboardPage() {
                   <span className="text-[10px] font-bold text-arc-accent">ℹ</span>
                 </div>
                 <div className="flex-1 space-y-1">
-                  <p className="text-xs font-semibold text-foreground">Sobre os Dados</p>
+                  <p className="text-xs font-semibold text-foreground">About the Data</p>
                   <p className="text-[11px] leading-relaxed text-muted-foreground">
-                    Todas as métricas exibidas são da <span className="font-semibold text-arc-accent">Arc Network Testnet</span>. Os dados são coletados em tempo real via RPC da rede (
+                    All displayed metrics are from <span className="font-semibold text-arc-accent">Arc Network Testnet</span>. Data is collected in real-time via network RPC (
                     <a
                       href="https://rpc.testnet.arc.network"
                       target="_blank"
@@ -434,7 +434,7 @@ export default function DashboardPage() {
                     >
                       rpc.testnet.arc.network
                     </a>
-                    ). Algumas métricas podem incluir estimativas baseadas em amostragem de blocos para otimizar o desempenho.
+                    ). Some metrics may include estimates based on block sampling to optimize performance.
                   </p>
                 </div>
               </div>

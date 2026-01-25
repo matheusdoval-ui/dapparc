@@ -155,9 +155,23 @@ export function WalletCard() {
           setIsRegisteringTransaction(true)
           console.log('📝 Registering query as on-chain transaction...')
           
-          // Try to use contract if available, otherwise use self-transfer
-          const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
-          const txHash = await registerQueryAsTransaction(contractAddress)
+          // SEMPRE usar o contrato Registry se configurado (OBRIGATÓRIO para evitar Raw input 0x)
+          // No cliente, só funciona com NEXT_PUBLIC_*
+          const registryContractAddress = 
+            process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS ||
+            process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ||
+            null
+          
+          const txHash = await registerQueryAsTransaction(registryContractAddress || undefined)
+          
+          if (registryContractAddress) {
+            console.log('✅ Using Registry Contract:', registryContractAddress)
+            console.log('✅ CallData será gerado com register() - Raw input não será 0x')
+            console.log('✅ Transação será enviada para o contrato, não para próprio endereço')
+          } else {
+            console.warn('⚠️ Registry Contract not configured - Raw input será 0x')
+            console.warn('⚠️ Configure NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS no .env.local')
+          }
           
           console.log('✅ Transaction created:', txHash)
           setLastTransactionHash(txHash)

@@ -231,18 +231,35 @@ export async function registerQueryAsTransaction(contractAddress?: string): Prom
     if (isSA) {
       const { sendUserOperationRPC, createCheckInUserOperation, getSmartAccountNonce } = await import('@/lib/user-operation')
       
-      // Obter endereço do contrato Registry (se configurado)
+      // SEMPRE usar o contrato Registry se configurado (OBRIGATÓRIO para evitar Raw input 0x)
+      // Prioridade: contractAddress (parâmetro) > NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS
+      // No cliente, process.env só funciona com NEXT_PUBLIC_*
       const registryContractAddress = (
-        process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS ||
-        process.env.REGISTRY_CONTRACT_ADDRESS ||
-        contractAddress
+        contractAddress ||
+        process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS
       ) as `0x${string}` | undefined
+      
+      // Se não configurado, avisar mas continuar (backward compatibility)
+      if (!registryContractAddress) {
+        console.warn('⚠️ REGISTRY_CONTRACT_ADDRESS não configurado - UserOperation terá callData vazio (0x)')
+        console.warn('⚠️ Configure NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS no .env.local para usar register()')
+        console.warn('⚠️ Sem o contrato, transação será enviada para próprio endereço com Raw input = 0x')
+      } else {
+        console.log('✅ Registry Contract configurado:', registryContractAddress)
+        console.log('✅ CallData será gerado com execute(contrato, 0, register())')
+        console.log('✅ Raw input será preenchido (não será 0x)')
+      }
+      
+      if (!registryContractAddress) {
+        console.warn('⚠️ Registry contract address not configured - UserOperation will use empty callData')
+        // Continuar com check-in vazio se não configurado (backward compatibility)
+      }
       
       // Obter nonce
       const nonce = await getSmartAccountNonce(address as `0x${string}`)
       
-      // Criar UserOperation com callData do register() se contrato configurado
-      // Isso preencherá o Raw input com a chamada do register(), não 0x
+      // SEMPRE criar UserOperation com callData do register() se contrato configurado
+      // Isso preencherá o Raw input com execute(contrato, 0, register()), não 0x
       const userOp = await createCheckInUserOperation(
         address as `0x${string}`,
         nonce,
@@ -255,8 +272,10 @@ export async function registerQueryAsTransaction(contractAddress?: string): Prom
       if (registryContractAddress) {
         console.log('✅ User Operation enviada com register() callData (não 0x):', userOpHash)
         console.log('📝 CallData:', userOp.callData)
-        console.log('📍 Contrato destino:', registryContractAddress)
+        console.log('📍 Contrato destino (to no execute):', registryContractAddress)
+        console.log('✅ Transação será enviada para o contrato, não para próprio endereço')
       } else {
+        console.warn('⚠️ User Operation enviada com callData vazio (0x) - Configure REGISTRY_CONTRACT_ADDRESS')
         console.log('✅ User Operation (check-in) enviada:', userOpHash)
       }
       

@@ -71,10 +71,13 @@ export async function createRegisterUserOperation(
     args: [REGISTRY_CONTRACT_ADDRESS as Address, 0n, registerCallData], // to = contrato, value = 0, data = register()
   })
 
-  console.log('📝 CallData gerado (execute -> register()):', callData)
+  console.log('📝 CallData gerado usando encodeFunctionData:')
+  console.log('  - execute(contrato, 0, register())')
+  console.log('  - CallData completo:', callData)
   console.log('📍 Contrato destino (to no execute):', REGISTRY_CONTRACT_ADDRESS)
   console.log('📋 Register() callData interno:', registerCallData)
   console.log('✅ Transação será enviada para o contrato, não para próprio endereço')
+  console.log('✅ Raw input será preenchido (não será 0x)')
 
   // Obter gas prices
   const gasPrices = await getGasPrices()
