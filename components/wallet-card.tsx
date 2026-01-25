@@ -440,15 +440,15 @@ export function WalletCard() {
         {/* Glow effect behind card */}
         <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-arc-accent/25 via-arc-accent/10 to-arc-accent/25 blur-xl opacity-80" />
         
-        {/* Main card — compacto, sem barra de rolagem */}
-        <div className="relative rounded-2xl border border-arc-accent/15 bg-black/40 p-5 backdrop-blur-xl transition-all duration-500 hover:border-arc-accent/40 hover:shadow-[0_0_32px_rgba(0,174,239,0.2)]">
+        {/* Main card — altura fixa, mesma dimensão ao conectar */}
+        <div className="relative flex h-[420px] flex-col overflow-hidden rounded-2xl border border-arc-accent/15 bg-black/40 p-5 backdrop-blur-xl transition-all duration-500 hover:border-arc-accent/40 hover:shadow-[0_0_32px_rgba(0,174,239,0.2)]">
           {/* Decorative corner accents */}
           <div className="absolute left-0 top-0 h-14 w-14 rounded-tl-2xl border-l-2 border-t-2 border-arc-accent/40" />
           <div className="absolute bottom-0 right-0 h-14 w-14 rounded-br-2xl border-b-2 border-r-2 border-arc-accent/40" />
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-arc-accent/50 to-transparent" />
 
           {/* Header com logo compacto */}
-          <div className="mb-4 flex flex-col items-center">
+          <div className="mb-4 flex flex-shrink-0 flex-col items-center">
             <div className="animate-pulse-glow mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-arc-accent to-arc-accent/70 shadow-[0_0_20px_rgba(0,174,239,0.35)]">
               <Wallet className="h-6 w-6 text-white" />
             </div>
@@ -456,6 +456,7 @@ export function WalletCard() {
             <p className="mt-0.5 text-xs tracking-wide text-muted-foreground">Decentralized Infrastructure</p>
           </div>
 
+          <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           {!walletData ? (
             <div className="flex flex-col items-center">
               {/* Badges compactos */}
@@ -821,6 +822,7 @@ export function WalletCard() {
               </Button>
             </div>
           )}
+          </div>
         </div>
       </div>
     </>

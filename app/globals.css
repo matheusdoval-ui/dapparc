@@ -156,6 +156,15 @@
   box-shadow: 0 0 0 1px rgba(0, 174, 239, 0.5), 0 0 24px rgba(0, 174, 239, 0.25);
 }
 
+/* Esconder barra de rolagem (scroll ainda funciona) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes neon-pulse {
   0%, 100% { opacity: 0.6; filter: drop-shadow(0 0 6px rgba(0, 174, 239, 0.8)); }
   50% { opacity: 1; filter: drop-shadow(0 0 12px rgba(0, 174, 239, 1)); }
