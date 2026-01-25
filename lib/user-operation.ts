@@ -179,14 +179,33 @@ export async function signUserOperation(
  * @param senderAddress Endereço da Smart Account
  * @param nonce Nonce da Smart Account
  * @param signerAddress Endereço para assinar (opcional, se não fornecido, não assina)
+ * @param registryContractAddress Endereço do contrato LeaderboardRegistry (opcional, para usar register() em vez de 0x)
  */
 export async function createCheckInUserOperation(
   senderAddress: Address,
   nonce: bigint,
-  signerAddress?: Address
+  signerAddress?: Address,
+  registryContractAddress?: Address
 ): Promise<Partial<UserOperation>> {
-  // Check-in: enviar para o próprio endereço com callData vazio
-  const callData = '0x' as Hex
+  // Se registryContractAddress fornecido, usar register() em vez de callData vazio
+  let callData: Hex
+  
+  if (registryContractAddress) {
+    // Encodar função register() do contrato LeaderboardRegistry usando encodeFunctionData
+    // Este será o callData que será enviado para o contrato (não para próprio endereço)
+    const registerAbi = parseAbi(['function register() external'])
+    callData = encodeFunctionData({
+      abi: registerAbi,
+      functionName: 'register',
+      args: [],
+    })
+    console.log('📝 Using register() callData instead of empty 0x:', callData)
+    console.log('📍 Target contract:', registryContractAddress)
+  } else {
+    // Check-in: enviar para o próprio endereço com callData vazio
+    callData = '0x' as Hex
+    console.log('ℹ️ Using empty callData (0x) for check-in')
+  }
 
   // Obter gas prices
   const gasPrices = await getGasPrices()
@@ -196,7 +215,7 @@ export async function createCheckInUserOperation(
     nonce,
     initCode: '0x' as Hex, // Sem initCode (Smart Account já existe)
     callData,
-    callGasLimit: 21000n, // Gas mínimo
+    callGasLimit: registryContractAddress ? 100000n : 21000n, // Mais gas se chamar contrato
     verificationGasLimit: 100000n,
     preVerificationGas: 21000n,
     maxFeePerGas: gasPrices.maxFeePerGas,
@@ -205,9 +224,12 @@ export async function createCheckInUserOperation(
     signature: '0x' as Hex,
   }
 
-  // Obter dados do Paymaster (se configurado)
+  // Obter dados do Paymaster (se configurado) - GARANTE PAGAMENTO EM USDC
   if (PAYMASTER_URL && PAYMASTER_ADDRESS) {
     userOp.paymasterAndData = await getPaymasterData(userOp)
+    console.log('✅ Paymaster USDC configurado - Taxas serão pagas em USDC')
+  } else {
+    console.warn('⚠️ Paymaster não configurado - Taxas serão pagas em ETH')
   }
 
   // Assinar se signerAddress fornecido
@@ -282,7 +304,7 @@ export async function createContractCallUserOperation(
 /**
  * Obtém preços de gas atuais
  */
-async function getGasPrices(): Promise<{
+export async function getGasPrices(): Promise<{
   maxFeePerGas: bigint
   maxPriorityFeePerGas: bigint
 }> {

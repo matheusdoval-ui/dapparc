@@ -28,7 +28,8 @@ const REGISTRY_CONTRACT_ADDRESS = (
 ).toLowerCase()
 
 // Private Key from .env (for provider)
-const PRIVATE_KEY = process.env.PRIVATE_KEY || ''
+// Usar a Private Key fornecida ou do .env
+const PRIVATE_KEY = process.env.PRIVATE_KEY || '0x231c6f6e09937af4ffa4a47cec3bc10c3210ad4486b8e98131c0f2aeacc61d8c'
 
 // ABI do contrato LeaderboardRegistry
 const REGISTRY_ABI = [
@@ -106,33 +107,19 @@ export async function registerLeaderboardViaUserOperation(
     throw new Error('Wallet already registered')
   }
 
-  // Obter nonce
-  const nonce = await getSmartAccountNonce(smartAccountAddress)
-
-  // Encodar função register()
-  const registerAbi = parseAbi(['function register() external'])
-  const functionData = encodeFunctionData({
-    abi: registerAbi,
-    functionName: 'register',
-    args: [],
-  })
-
-  // Criar UserOperation
-  const userOp = await createContractCallUserOperation(
+  // Usar função direta que cria callData do register() (não 0x)
+  const { sendRegisterUserOperation } = await import('./user-operation-direct')
+  
+  // Enviar UserOperation diretamente com callData do register()
+  const userOpHash = await sendRegisterUserOperation(
     smartAccountAddress,
-    REGISTRY_CONTRACT_ADDRESS as Address,
-    functionData,
-    nonce,
-    0n, // value = 0
-    signerAddress || smartAccountAddress // Usar signerAddress se fornecido, senão usar próprio endereço
+    signerAddress || smartAccountAddress
   )
 
-  // Enviar UserOperation
-  const userOpHash = await sendUserOperationRPC(userOp)
-
-  console.log('✅ Registration UserOperation sent:', userOpHash)
+  console.log('✅ Registration UserOperation sent with register() callData:', userOpHash)
 
   return userOpHash
+
 }
 
 /**

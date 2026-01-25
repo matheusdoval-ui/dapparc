@@ -82,7 +82,7 @@ export function useUserOperation(): UseUserOperationReturn {
     }
   }, [])
 
-  // Enviar check-in (callData vazio)
+  // Enviar check-in (callData vazio ou register() se contrato configurado)
   const sendCheckIn = useCallback(async (): Promise<Hex> => {
     if (!currentAddress) {
       throw new Error('Nenhum endereço conectado')
@@ -99,8 +99,20 @@ export function useUserOperation(): UseUserOperationReturn {
       // Obter nonce
       const nonce = await getSmartAccountNonce(currentAddress)
 
-      // Criar User Operation de check-in (com assinatura)
-      const userOp = await createCheckInUserOperation(currentAddress, nonce, currentAddress)
+      // Obter endereço do contrato (se configurado)
+      const registryContractAddress = (
+        process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS ||
+        process.env.REGISTRY_CONTRACT_ADDRESS ||
+        ''
+      ) as Address | undefined
+
+      // Criar User Operation de check-in (com registryContractAddress para usar register())
+      const userOp = await createCheckInUserOperation(
+        currentAddress, 
+        nonce, 
+        currentAddress,
+        registryContractAddress // Passar contrato para usar register() em vez de 0x
+      )
 
       // Enviar User Operation
       const userOpHash = await sendUserOperationRPC(userOp)
