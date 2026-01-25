@@ -1,0 +1,14 @@
+COMANDOS EXATOS PARA DEPLOY:
+
+1. Instalar Hardhat:
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+
+2. Compilar:
+npx hardhat compile
+
+3. Deploy:
+npx hardhat run scripts/deploy-leaderboard-hardhat.js --network arcTestnet
+
+Após o deploy, adicione o endereço do contrato ao .env.local:
+NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS=0x...
+REGISTRY_CONTRACT_ADDRESS=0x...

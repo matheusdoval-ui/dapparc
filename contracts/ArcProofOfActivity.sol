@@ -87,7 +87,7 @@ contract ArcProofOfActivity {
      * - keccak256("view_transactions")
      * - keccak256("used_dapp")
      */
-    function proveActivity(bytes32 context) external {
+    function proveActivity(bytes32 context) public {
         address user = msg.sender;
         uint256 currentBlock = block.number;
         uint64 lastBlock = lastActivityBlock[user];

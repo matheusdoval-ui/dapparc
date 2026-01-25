@@ -524,57 +524,53 @@ export function WalletCard() {
           interactions={walletData.interactions}
         />
       )}
-      <div className="relative w-full max-w-md">
-        {/* Glow effect behind card */}
-        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-arc-accent/25 via-arc-accent/10 to-arc-accent/25 blur-xl opacity-80" />
+      <div className="relative w-full max-w-2xl">
+        {/* Glow effect behind card - aumentado */}
+        <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-arc-accent/30 via-arc-accent/15 to-arc-accent/30 blur-2xl opacity-90 animate-pulse" />
         
-        {/* Main card — dimensões fixas: não altera ao conectar */}
-        <div className="relative flex h-[420px] min-h-[420px] max-h-[420px] w-full flex-col overflow-hidden rounded-2xl border border-arc-accent/15 bg-white/90 p-5 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-arc-accent/40 hover:shadow-[0_0_32px_rgba(0,174,239,0.2)] dark:bg-black/40">
-          {/* Decorative corner accents */}
-          <div className="absolute left-0 top-0 h-14 w-14 rounded-tl-2xl border-l-2 border-t-2 border-arc-accent/40" />
-          <div className="absolute bottom-0 right-0 h-14 w-14 rounded-br-2xl border-b-2 border-r-2 border-arc-accent/40" />
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-arc-accent/50 to-transparent" />
+        {/* Main card — sem moldura, dimensões aumentadas */}
+        <div className="relative flex min-h-[500px] w-full flex-col overflow-hidden rounded-3xl bg-white/90 p-8 backdrop-blur-xl transition-all duration-300 hover:shadow-[0_0_48px_rgba(0,174,239,0.3)] dark:bg-black/40">
 
-          {/* Header com logo compacto */}
-          <div className="mb-4 flex flex-shrink-0 flex-col items-center">
-            <div className="animate-pulse-glow mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-arc-accent to-arc-accent/70 shadow-[0_0_20px_rgba(0,174,239,0.35)]">
-              <Wallet className="h-6 w-6 text-white" />
+          {/* Header com logo aumentado */}
+          <div className="mb-6 flex flex-shrink-0 flex-col items-center">
+            <div className="animate-pulse-glow mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-arc-accent to-arc-accent/70 shadow-[0_0_30px_rgba(0,174,239,0.5)]">
+              <Wallet className="h-10 w-10 text-white" />
             </div>
-            <h2 className="text-lg font-bold tracking-wide text-foreground">ARC Network</h2>
-            <p className="mt-0.5 text-xs tracking-wide text-muted-foreground">Decentralized Infrastructure</p>
+            <h2 className="text-2xl font-bold tracking-wide text-foreground">ARC Network</h2>
+            <p className="mt-1 text-sm tracking-wide text-muted-foreground">Decentralized Infrastructure</p>
           </div>
 
           <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           {!walletData ? (
             <div className="flex flex-col items-center">
-              {/* Badges compactos */}
-              <div className="mb-4 flex flex-wrap justify-center gap-2">
-                <div className="flex items-center gap-1 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
-                  <Shield className="h-2.5 w-2.5 text-arc-accent" />
+              {/* Badges aumentados */}
+              <div className="mb-6 flex flex-wrap justify-center gap-3">
+                <div className="flex items-center gap-2 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
+                  <Shield className="h-4 w-4 text-arc-accent" />
                   Secure
                 </div>
-                <div className="flex items-center gap-1 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
-                  <Zap className="h-2.5 w-2.5 text-arc-accent" />
+                <div className="flex items-center gap-2 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
+                  <Zap className="h-4 w-4 text-arc-accent" />
                   Fast
                 </div>
-                <div className="flex items-center gap-1 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-2.5 py-1 text-[10px] uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
-                  <Globe className="h-2.5 w-2.5 text-arc-accent" />
+                <div className="flex items-center gap-2 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-4 py-2 text-xs uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
+                  <Globe className="h-4 w-4 text-arc-accent" />
                   EVM
                 </div>
               </div>
 
-              <p className="mb-4 text-center text-xs text-muted-foreground">
+              <p className="mb-6 text-center text-sm text-muted-foreground">
                 Connect your wallet or paste an address to view on-chain interactions.
               </p>
 
-              {/* Error message */}
+              {/* Error message - aumentado */}
               {error && (
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400 animate-in slide-in-from-top-2">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
+                <div className="mb-4 flex items-center gap-3 rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 animate-in slide-in-from-top-2">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
                   <span>{error}</span>
                   <button
                     onClick={() => setError(null)}
-                    className="ml-auto text-red-400/60 hover:text-red-400 transition-colors"
+                    className="ml-auto text-red-400/60 hover:text-red-400 transition-colors text-lg"
                     aria-label="Dismiss error"
                   >
                     ×
@@ -586,37 +582,37 @@ export function WalletCard() {
               <Button
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="group relative w-full overflow-hidden rounded-xl border border-arc-accent/30 bg-arc-accent py-4 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:border-arc-accent/60 hover:bg-arc-accent/95 hover:shadow-[0_0_36px_rgba(0,174,239,0.5)] disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
+                className="group relative w-full overflow-hidden rounded-xl bg-arc-accent py-5 text-base font-semibold tracking-wide text-white transition-all duration-300 hover:bg-arc-accent/95 hover:shadow-[0_0_48px_rgba(0,174,239,0.6)] disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                 {isConnecting ? (
-                  <span className="flex items-center justify-center gap-2 relative z-10">
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span className="flex items-center justify-center gap-3 relative z-10">
+                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     <span>Connecting...</span>
                   </span>
                 ) : (
-                  <span className="flex items-center justify-center gap-2 relative z-10">
-                    <Wallet className="h-5 w-5" />
+                  <span className="flex items-center justify-center gap-3 relative z-10">
+                    <Wallet className="h-6 w-6" />
                     <span>Connect Wallet</span>
                   </span>
                 )}
               </Button>
 
-              <p className="mt-3 text-[10px] text-muted-foreground/60">
+              <p className="mt-4 text-xs text-muted-foreground/60">
                 MetaMask or Rabby • ARC Testnet
               </p>
 
-              <div className="mt-4 w-full space-y-2">
-                <div className="flex items-center gap-2 text-center text-[10px] text-muted-foreground/80">
+              <div className="mt-6 w-full space-y-3">
+                <div className="flex items-center gap-2 text-center text-xs text-muted-foreground/80">
                   <div className="h-px flex-1 bg-foreground/10" />
                   <span>Or check address manually</span>
                   <div className="h-px flex-1 bg-foreground/10" />
                 </div>
-                <p className="text-center text-[10px] text-muted-foreground/60">
+                <p className="text-center text-xs text-muted-foreground/60">
                   Paste ARC address (0x...) to check interactions
                 </p>
-                <div className="flex w-full flex-col gap-1.5">
-                  <div className="flex w-full gap-2">
+                <div className="flex w-full flex-col gap-2">
+                  <div className="flex w-full gap-3">
                     <div className="relative flex-1">
                       <Input
                         value={manualAddress}
@@ -642,7 +638,7 @@ export function WalletCard() {
                           }, 0)
                         }}
                         placeholder="0x1234...abcd"
-                        className={`flex-1 border-white/30 bg-white/[0.05] text-xs text-white placeholder:text-white/40 transition-all ${
+                        className={`flex-1 bg-white/[0.05] text-sm text-white placeholder:text-white/40 transition-all ${
                           addressValidation?.isValid 
                             ? 'border-green-500/50 focus:border-green-500/80' 
                             : addressValidation?.isValid === false && manualAddress.trim()
@@ -654,13 +650,13 @@ export function WalletCard() {
                         disabled={isCheckingAddress || isLoadingStats}
                       />
                       {addressValidation && manualAddress.trim() && (
-                        <div className={`absolute right-3 top-1/2 -translate-y-1/2 transition-opacity ${
+                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 transition-opacity ${
                           addressValidation.isValid ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {addressValidation.isValid ? (
-                            <Check className="h-4 w-4" />
+                            <Check className="h-5 w-5" />
                           ) : (
-                            <AlertCircle className="h-4 w-4" />
+                            <AlertCircle className="h-5 w-5" />
                           )}
                         </div>
                       )}
@@ -680,27 +676,27 @@ export function WalletCard() {
                         }
                       }}
                       disabled={isCheckingAddress || isLoadingStats}
-                      className={`flex-shrink-0 rounded-xl px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition-all active:scale-95 ${
+                      className={`flex-shrink-0 rounded-xl px-5 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-all active:scale-95 ${
                         addressValidation?.isValid && !isCheckingAddress && !isLoadingStats
-                          ? 'bg-arc-accent hover:bg-arc-accent/90 hover:shadow-[0_0_20px_rgba(0,174,239,0.4)]'
+                          ? 'bg-arc-accent hover:bg-arc-accent/90 hover:shadow-[0_0_24px_rgba(0,174,239,0.5)]'
                           : 'bg-white/10 hover:bg-white/20 disabled:opacity-60'
                       }`}
                     >
                       {isCheckingAddress || isLoadingStats ? (
                         <span className="flex items-center gap-2">
-                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                           Checking...
                         </span>
                       ) : (
                         <span className="flex items-center gap-2">
-                          <Activity className="h-3 w-3" />
+                          <Activity className="h-4 w-4" />
                           Check
                         </span>
                       )}
                     </Button>
                   </div>
                   {addressValidation && manualAddress.trim() && (
-                    <p className={`text-xs transition-all ${
+                    <p className={`text-sm transition-all ${
                       addressValidation.isValid 
                         ? 'text-green-400/80' 
                         : 'text-red-400/80'
@@ -713,68 +709,68 @@ export function WalletCard() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Connected status */}
-              <div className="mb-4 flex flex-col items-center gap-0.5">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="relative flex h-2 w-2">
+              {/* Connected status - aumentado */}
+              <div className="mb-6 flex flex-col items-center gap-1">
+                <div className="flex items-center justify-center gap-3">
+                  <span className="relative flex h-3 w-3">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                    <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
                   </span>
-                  <span className="text-sm font-medium text-green-400">
+                  <span className="text-base font-medium text-green-400">
                     {isConnected ? 'Connected' : 'Manual lookup'}
                   </span>
                 </div>
-                <span className="text-xs text-muted-foreground/60">
+                <span className="text-sm text-muted-foreground/60">
                   {isConnected ? 'ARC Testnet wallet active' : 'Address analyzed manually'}
                 </span>
               </div>
 
-              {/* Wallet Address Card */}
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
-                <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                  <Wallet className="h-3 w-3 text-arc-accent" />
+              {/* Wallet Address Card - aumentado */}
+              <div className="rounded-xl bg-white/5 p-6 transition-all hover:bg-white/10">
+                <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <Wallet className="h-4 w-4 text-arc-accent" />
                   Wallet Address
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm font-semibold text-foreground">
+                  <span className="font-mono text-lg font-semibold text-foreground">
                     {walletData && shortenAddress(walletData.address)}
                   </span>
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     <button
                       onClick={copyAddress}
-                      className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent"
+                      className="rounded-lg p-2.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent"
                       title="Copy address"
                     >
                       {copied ? (
-                        <Check className="h-4 w-4 text-green-400" />
+                        <Check className="h-5 w-5 text-green-400" />
                       ) : (
-                        <Copy className="h-4 w-4" />
+                        <Copy className="h-5 w-5" />
                       )}
                     </button>
                     <a
                       href={`https://testnet.arcscan.app/address/${walletData?.address}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent"
+                      className="rounded-lg p-2.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent"
                       title="View on explorer"
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <ExternalLink className="h-5 w-5" />
                     </a>
                   </div>
                 </div>
               </div>
 
-              {/* USDC Balance Card */}
+              {/* USDC Balance Card - aumentado */}
               {walletData?.balance !== undefined && (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                      <Coins className="h-3 w-3 text-arc-accent" />
+                <div className="rounded-xl bg-white/5 p-6 transition-all hover:bg-white/10">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      <Coins className="h-4 w-4 text-arc-accent" />
                       USDC Balance
                     </div>
                     {walletData.lastUpdated && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground/60">
-                        <Clock className="h-3 w-3" />
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground/60">
+                        <Clock className="h-4 w-4" />
                         <span>
                           {new Date(walletData.lastUpdated).toLocaleTimeString('en-US', {
                             hour: '2-digit',
@@ -784,31 +780,31 @@ export function WalletCard() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-2xl font-bold text-transparent">
+                  <div className="flex items-baseline gap-3">
+                    <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-4xl font-bold text-transparent">
                       {walletData.balanceFormatted || walletData.balance?.toFixed(2) || '0.00'}
                     </span>
-                    <span className="text-xs text-muted-foreground">USDC</span>
+                    <span className="text-base text-muted-foreground">USDC</span>
                   </div>
                 </div>
               )}
 
-              {/* Interactions Card */}
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    <Activity className="h-3 w-3 text-arc-accent" />
+              {/* Interactions Card - aumentado */}
+              <div className="rounded-xl bg-white/5 p-6 transition-all hover:bg-white/10">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    <Activity className="h-4 w-4 text-arc-accent" />
                     Total Interactions
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {walletRank !== null && (
                       <a
                         href="/leaderboard"
-                        className="flex items-center gap-1.5 rounded-full border border-arc-accent/30 bg-arc-accent/10 px-2.5 py-1 hover:bg-arc-accent/20 transition-colors"
+                        className="flex items-center gap-2 rounded-full border border-arc-accent/30 bg-arc-accent/10 px-3 py-1.5 hover:bg-arc-accent/20 transition-colors"
                         title="View full leaderboard"
                       >
-                        <Trophy className="h-3 w-3 text-arc-accent" />
-                        <span className="text-xs font-semibold text-arc-accent">
+                        <Trophy className="h-4 w-4 text-arc-accent" />
+                        <span className="text-sm font-semibold text-arc-accent">
                           Rank #{walletRank}
                         </span>
                       </a>
@@ -816,36 +812,36 @@ export function WalletCard() {
                     <button
                       onClick={() => walletData && fetchWalletStats(walletData.address, false, isConnected)} // Use isConnected state
                       disabled={isRefreshing || isLoadingStats}
-                      className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent disabled:opacity-50"
+                      className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent disabled:opacity-50"
                       title="Refresh stats"
                     >
-                      <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing || isLoadingStats ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`h-5 w-5 ${isRefreshing || isLoadingStats ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
                 </div>
                 {isLoadingStats ? (
-                  <div className="flex flex-col items-center justify-center py-4 gap-2">
-                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-arc-accent/30 border-t-arc-accent" />
-                    <p className="text-xs text-muted-foreground animate-pulse">Loading...</p>
+                  <div className="flex flex-col items-center justify-center py-6 gap-3">
+                    <span className="h-8 w-8 animate-spin rounded-full border-2 border-arc-accent/30 border-t-arc-accent" />
+                    <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
                   </div>
                 ) : error ? (
-                  <div className="flex items-center gap-2 py-3 text-xs text-red-400">
-                    <AlertCircle className="h-4 w-4" />
+                  <div className="flex items-center gap-2 py-4 text-sm text-red-400">
+                    <AlertCircle className="h-5 w-5" />
                     <span>Failed to load interactions</span>
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-baseline gap-2">
-                      <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-2xl font-bold text-transparent">
+                    <div className="flex items-baseline gap-3">
+                      <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-4xl font-bold text-transparent">
                         {walletData?.interactions.toLocaleString() || 0}
                       </span>
-                      <span className="text-xs text-muted-foreground">transactions</span>
+                      <span className="text-base text-muted-foreground">transactions</span>
                     </div>
                     
                     {chartData.length > 0 && (
-                      <div className="mt-4 h-24 w-full animate-in fade-in slide-in-from-bottom-4">
-                        <div className="mb-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                          <TrendingUp className="h-3 w-3 text-arc-accent" />
+                      <div className="mt-6 h-32 w-full animate-in fade-in slide-in-from-bottom-4">
+                        <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <TrendingUp className="h-4 w-4 text-arc-accent" />
                           <span>Growth over last 30 days</span>
                         </div>
                         <ResponsiveContainer width="100%" height="100%">
@@ -854,13 +850,13 @@ export function WalletCard() {
                             <XAxis 
                               dataKey="date" 
                               stroke="rgba(255,255,255,0.3)"
-                              style={{ fontSize: '10px' }}
+                              style={{ fontSize: '12px' }}
                               interval={Math.floor(chartData.length / 6)}
                             />
                             <YAxis 
                               stroke="rgba(255,255,255,0.3)"
-                              style={{ fontSize: '10px' }}
-                              width={40}
+                              style={{ fontSize: '12px' }}
+                              width={50}
                             />
                             <Tooltip 
                               contentStyle={{
@@ -875,18 +871,18 @@ export function WalletCard() {
                               type="monotone" 
                               dataKey="interactions" 
                               stroke="#00AEEF" 
-                              strokeWidth={2}
-                              dot={{ fill: '#00AEEF', r: 3 }}
-                              activeDot={{ r: 5 }}
+                              strokeWidth={3}
+                              dot={{ fill: '#00AEEF', r: 4 }}
+                              activeDot={{ r: 6 }}
                             />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
                     )}
                     
-                    {/* Fallback mini chart if no data */}
+                    {/* Fallback mini chart if no data - aumentado */}
                     {chartData.length === 0 && (
-                      <div className="mt-3 flex items-end gap-0.5 h-6">
+                      <div className="mt-4 flex items-end gap-1 h-10">
                         {[40, 65, 45, 80, 55, 90, 70, 85, 60, 75, 95, 80].map((height, i) => (
                           <div
                             key={i}
@@ -900,11 +896,11 @@ export function WalletCard() {
                 )}
               </div>
 
-              {/* Disconnect Button */}
+              {/* Disconnect Button - aumentado */}
               <Button
                 onClick={handleDisconnect}
                 variant="outline"
-                className="w-full rounded-xl border-white/10 bg-transparent py-3 text-xs font-medium text-muted-foreground transition-all duration-200 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
+                className="w-full rounded-xl bg-transparent py-4 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-red-500/10 hover:text-red-400"
               >
                 {isConnected ? 'Disconnect wallet' : 'Clear lookup'}
               </Button>
