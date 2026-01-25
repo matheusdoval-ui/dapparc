@@ -2,7 +2,7 @@
 
 import { WalletCard } from "@/components/wallet-card"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Github, Twitter, BookOpen, ExternalLink, Trophy, Globe } from "lucide-react"
+import { Github, Twitter, BookOpen, ExternalLink, Trophy, Globe, Wallet, Search, Sparkles } from "lucide-react"
 import { useState, useEffect } from "react"
 
 const BRAZILIAN_DAPPS = [
@@ -89,7 +89,6 @@ export default function Home() {
             { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
             { href: 'https://docs.arc.network/arc/references/contract-addresses', icon: BookOpen, label: 'Docs', external: true },
             { href: 'https://www.arc.network/', icon: ExternalLink, label: 'Explorer', external: true },
-            { href: 'https://github.com/matheusdoval-ui', icon: Github, label: 'GitHub', external: true },
           ].map(({ href, icon: Icon, label, external }) => (
             <a
               key={label}
@@ -121,7 +120,7 @@ export default function Home() {
                 )}
               </span>
               <span className="text-sm font-medium tracking-wide text-foreground/90">
-                {isTestnetActive ? 'Testnet Live' : 'Testnet Offline'}
+                {isTestnetActive ? 'Live on Arc Network Testnet' : 'Testnet Offline'}
               </span>
             </div>
             <h1 className="text-balance text-3xl font-black tracking-tighter sm:text-4xl lg:text-5xl mb-2 text-foreground">
@@ -152,6 +151,70 @@ export default function Home() {
             ))}
           </div>
         </div>
+
+        {/* How It Works — landing */}
+        <section className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="mb-6 rounded-2xl border border-arc-accent/25 bg-white/80 px-6 py-5 text-center backdrop-blur-md dark:bg-black/40">
+            <h2 className="text-xl font-black tracking-tight text-foreground sm:text-2xl">How It Works</h2>
+            <p className="mx-auto mt-2 max-w-xl text-sm font-medium tracking-wide text-muted-foreground sm:text-base">
+              Explore on-chain activity on ARC Network in seconds
+            </p>
+          </div>
+          <div className="mx-auto grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                icon: Globe,
+                title: 'Access ARCtx',
+                text: 'Visit arctx.xyz for instant on-chain data. No sign-up.',
+              },
+              {
+                icon: Wallet,
+                title: 'Connect Your Wallet',
+                text: 'Link MetaMask, Rabby, or others to see your activity. Optional.',
+              },
+              {
+                icon: Search,
+                title: 'Search Any Address',
+                text: 'Paste any 0x… address to explore txs and contracts — no wallet needed.',
+              },
+            ].map(({ icon: Icon, title, text }) => (
+              <div
+                key={title}
+                className="group relative flex flex-col items-center overflow-hidden rounded-xl border border-arc-accent/15 bg-white/60 p-4 text-center backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:border-arc-accent/40 hover:bg-arc-accent/5 hover:shadow-[0_0_24px_rgba(0,174,239,0.15)] dark:bg-black/30"
+              >
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-arc-accent/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-arc-accent/20 bg-arc-accent/10 transition-all group-hover:border-arc-accent/40 group-hover:bg-arc-accent/20 group-hover:shadow-[0_0_12px_rgba(0,174,239,0.25)]">
+                  <Icon className="h-5 w-5 text-arc-accent" />
+                </div>
+                <h3 className="mb-2 text-sm font-semibold tracking-wide text-foreground">{title}</h3>
+                <p className="text-xs leading-relaxed text-muted-foreground">{text}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Why ARCtx */}
+          <div className="mt-8 rounded-xl border border-arc-accent/25 bg-arc-accent/5 px-5 py-5 backdrop-blur-md dark:bg-arc-accent/10">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-arc-accent/20 bg-arc-accent/15">
+                <Sparkles className="h-4 w-4 text-arc-accent" />
+              </div>
+              <h3 className="text-sm font-bold tracking-wide text-foreground sm:text-base">Why ARCtx?</h3>
+            </div>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {[
+                'Fast access to on-chain insights',
+                'No intermediaries',
+                'Fully decentralized',
+                'Built for Web3 users & builders',
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-arc-accent" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
 
         {/* Brazilian DApps — compacto */}
         <section className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
