@@ -103,9 +103,8 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Main Content: left = ARCtx + wallet, right = Brazilian DApps */}
-      <div className="relative z-10 grid w-full max-w-6xl grid-cols-1 items-start gap-8 px-2 pt-4 lg:grid-cols-2 lg:gap-12">
-        {/* Left: ARCtx quadrant + wallet connection */}
+      {/* Main Content: ARCtx + wallet + stats, then Brazilian DApps abaixo */}
+      <div className="relative z-10 flex w-full max-w-4xl flex-col items-center gap-8 px-2 pt-4">
         <div className="flex flex-col items-center text-center">
           <header className="mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-arc-accent/20 bg-black/40 px-4 py-2 backdrop-blur-md shadow-[0_0_20px_rgba(0,174,239,0.1)]">
@@ -123,7 +122,7 @@ export default function Home() {
                 {isTestnetActive ? 'Testnet Live' : 'Testnet Offline'}
               </span>
             </div>
-            <h1 className="text-balance text-4xl font-black tracking-[0.15em] sm:text-5xl lg:text-6xl mb-2 bg-gradient-to-r from-white via-arc-accent to-cyan-300 bg-clip-text text-transparent text-glow-cyan">
+            <h1 className="text-balance text-4xl font-black tracking-[0.15em] sm:text-5xl lg:text-6xl mb-2 text-white">
               ARCtx
             </h1>
             <p className="mx-auto mt-3 max-w-sm text-pretty text-sm tracking-wide text-white/50 sm:text-base">
@@ -133,7 +132,7 @@ export default function Home() {
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <WalletCard />
           </div>
-          <div className="mt-8 grid w-full max-w-md grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="mt-4 grid w-full max-w-sm grid-cols-3 gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {[
               { value: '50K+', label: 'Active Wallets' },
               { value: '2.5M', label: 'Transactions' },
@@ -141,45 +140,45 @@ export default function Home() {
             ].map(({ value, label }) => (
               <div
                 key={label}
-                className="rounded-xl border border-arc-accent/15 bg-black/30 px-4 py-3 font-mono backdrop-blur-md transition-all hover:border-arc-accent/40 hover:bg-arc-accent/5 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)]"
+                className="rounded-lg border border-arc-accent/15 bg-black/30 px-2.5 py-2 backdrop-blur-md transition-all hover:border-arc-accent/40 hover:bg-arc-accent/5 hover:shadow-[0_0_16px_rgba(0,174,239,0.2)]"
               >
-                <div className="text-lg font-bold tabular-nums text-white sm:text-xl bg-gradient-to-r from-white to-arc-accent/90 bg-clip-text text-transparent">
+                <div className="text-sm font-bold tabular-nums text-white sm:text-base tracking-wide bg-gradient-to-r from-white to-arc-accent/90 bg-clip-text text-transparent">
                   {value}
                 </div>
-                <div className="mt-0.5 text-[10px] uppercase tracking-widest text-white/40 sm:text-xs">{label}</div>
+                <div className="mt-0.5 text-[8px] font-medium uppercase tracking-wider text-white/40 sm:text-[9px]">{label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right: Brazilian DApps — grid 2 cols, compact */}
-        <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="h-5 w-0.5 rounded-full bg-[#009c3b] shadow-[0_0_6px_rgba(0,156,59,0.5)]" />
-            <span className="h-5 w-0.5 rounded-full bg-[#ffdf00] shadow-[0_0_6px_rgba(255,223,0,0.4)]" />
-            <h2 className="text-sm font-bold tracking-widest uppercase text-white">Brazilian DApps</h2>
+        {/* Brazilian DApps — posição inicial, abaixo */}
+        <section className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="h-6 w-0.5 rounded-full bg-[#009c3b] shadow-[0_0_8px_rgba(0,156,59,0.6)]" />
+            <span className="h-6 w-0.5 rounded-full bg-[#ffdf00] shadow-[0_0_8px_rgba(255,223,0,0.5)]" />
+            <h2 className="text-base font-bold tracking-widest uppercase text-white sm:text-lg">Brazilian DApps</h2>
           </div>
-          <p className="mb-3 text-xs tracking-wide text-white/40">dApps built by Brazilian developers on Arc.</p>
-          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+          <p className="mb-5 text-sm tracking-wide text-white/50">dApps built by Brazilian developers on Arc.</p>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
             {BRAZILIAN_DAPPS.map((dapp) => (
               <a
                 key={dapp.name}
                 href={dapp.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex flex-col overflow-hidden rounded-lg border border-arc-accent/15 bg-black/30 p-2.5 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:border-arc-accent/50 hover:bg-arc-accent/5 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)]"
+                className="group relative flex flex-col overflow-hidden rounded-xl border border-arc-accent/15 bg-black/30 p-4 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:border-arc-accent/50 hover:bg-arc-accent/5 hover:shadow-[0_0_24px_rgba(0,174,239,0.2)]"
               >
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-arc-accent/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                <div className="mb-1 flex items-center gap-1.5">
-                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-arc-accent/20 bg-arc-accent/10 transition-all group-hover:border-arc-accent/40 group-hover:bg-arc-accent/20 group-hover:shadow-[0_0_8px_rgba(0,174,239,0.25)]">
-                    <Globe className="h-2.5 w-2.5 text-arc-accent" />
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-arc-accent/20 bg-arc-accent/10 transition-all group-hover:border-arc-accent/40 group-hover:bg-arc-accent/20 group-hover:shadow-[0_0_12px_rgba(0,174,239,0.3)]">
+                    <Globe className="h-3.5 w-3.5 text-arc-accent" />
                   </div>
-                  <span className="truncate text-xs font-semibold tracking-wide text-white">{dapp.name}</span>
+                  <span className="truncate text-sm font-semibold tracking-wide text-white">{dapp.name}</span>
                 </div>
-                <p className="mb-1.5 line-clamp-1 text-[10px] leading-snug text-white/40">{dapp.description}</p>
-                <div className="flex flex-wrap gap-1">
-                  {dapp.tags.slice(0, 2).map((tag) => (
-                    <span key={tag} className="rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-arc-accent/90">
+                <p className="mb-3 line-clamp-2 flex-1 text-xs leading-relaxed text-white/55">{dapp.description}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dapp.tags.map((tag) => (
+                    <span key={tag} className="rounded-md border border-arc-accent/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-arc-accent">
                       {tag}
                     </span>
                   ))}
