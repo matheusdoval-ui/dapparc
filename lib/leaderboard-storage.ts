@@ -2,6 +2,9 @@
  * Persistent storage for leaderboard data
  * Uses Vercel KV (Redis) for production persistence
  * Falls back to file system for local development
+ *
+ * Rank is never deleted on updates: we never overwrite file/KV with fewer entries,
+ * and we never batch-replace storage in a way that could shrink the leaderboard.
  */
 
 import { promises as fs } from 'fs'
@@ -63,27 +66,40 @@ async function loadFromFile(): Promise<Map<string, WalletStats>> {
 }
 
 /**
- * Save data to file immediately (synchronous save)
+ * Save data to file immediately.
+ * Never overwrite with fewer entries: rank/leaderboard is preserved on any update.
  */
 async function saveToFileImmediate(): Promise<void> {
   try {
-    // Ensure data directory exists
     await fs.mkdir(DATA_DIR, { recursive: true })
-    
-    // Convert Map to object for JSON serialization
+
+    // Never shrink leaderboard: refuse to overwrite if current file has more entries
+    let currentCount = 0
+    try {
+      const raw = await fs.readFile(DATA_FILE, 'utf-8')
+      const parsed = JSON.parse(raw) as Record<string, WalletStats>
+      currentCount = Object.keys(parsed).length
+    } catch {
+      /* file missing or invalid → currentCount stays 0 */
+    }
+    if (currentCount > walletStatsMap.size) {
+      console.warn(
+        `⚠️ Refusing to overwrite leaderboard file: would shrink from ${currentCount} to ${walletStatsMap.size} entries. Rank preserved.`
+      )
+      return
+    }
+
     const data: Record<string, WalletStats> = {}
     walletStatsMap.forEach((value, key) => {
       data[key] = value
     })
-    
-    // Write to file atomically (write to temp file then rename)
+
     const tempFile = `${DATA_FILE}.tmp`
     await fs.writeFile(tempFile, JSON.stringify(data, null, 2), 'utf-8')
     await fs.rename(tempFile, DATA_FILE)
-    
+
     console.log(`💾 Saved ${walletStatsMap.size} wallet stats to file: ${DATA_FILE}`)
   } catch (error: any) {
-    // In production (Vercel), file system may be read-only — never throw, only log
     if (error.code === 'EROFS' || error.code === 'EACCES') {
       console.warn('⚠️ File system is read-only (serverless environment), data will persist in memory only')
     } else {
@@ -147,12 +163,15 @@ async function initializeStorage(): Promise<Map<string, WalletStats>> {
       isInitialized = true
       console.log(`📂 Loaded ${fileData.size} entries from file`)
       
-      // Sync to KV if available (migrate from file to KV)
+      // Sync to KV if available: merge file into KV so we never shrink KV / drop ranks
       if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
         try {
           const kvModule = await import('./leaderboard-storage-kv')
-          await kvModule.saveToKv(walletStatsMap)
-          console.log('✅ Synced file data to Vercel KV')
+          const kvData = await kvModule.loadFromKv()
+          const merged = new Map(kvData)
+          walletStatsMap.forEach((v, k) => merged.set(k, v))
+          await kvModule.saveToKv(merged)
+          console.log(`✅ Synced file→KV (merge): ${merged.size} entries, rank preserved`)
         } catch (kvError) {
           console.warn('⚠️ Could not sync to KV:', kvError)
         }
@@ -300,22 +319,15 @@ export async function recordWalletConsultation(
     }
 
     // Try to save to Vercel KV (only if env vars are set)
+    // Always upsert single wallet only — never full overwrite, so rank is never lost on updates
     if (hasKv) {
       try {
-        // Dynamic import to avoid loading if not needed
         const kvModule = await import('./leaderboard-storage-kv')
         await kvModule.saveWalletToKv(normalizedAddress, walletToSave)
         console.log(`💾 Wallet saved to Vercel KV: ${normalizedAddress}`)
       } catch (kvError: any) {
         console.warn('⚠️ Could not save to KV (non-critical):', kvError.message || kvError)
-        // Try batch save as fallback
-        try {
-          const kvModule = await import('./leaderboard-storage-kv')
-          await kvModule.saveToKv(walletStatsMap)
-          console.log(`💾 All data saved to Vercel KV (batch)`)
-        } catch (kvBatchError: any) {
-          console.warn('⚠️ Could not save batch to KV (non-critical):', kvBatchError.message || kvBatchError)
-        }
+        // Do not fall back to full saveToKv: overwriting KV with in-memory map could shrink storage and drop ranks
       }
     }
 

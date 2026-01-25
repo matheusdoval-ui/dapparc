@@ -1,7 +1,10 @@
 /**
  * Leaderboard persistence in Postgres (Neon)
  * Table: arc_leaderboard — address (pk), transactions, first_consulted_at, last_consulted_at, consult_count
- * Rank = ORDER BY transactions DESC (computed on read)
+ * Rank = ORDER BY transactions DESC, first_consulted_at ASC (computed on read)
+ *
+ * Never delete rows. On upsert we only update transactions, last_consulted_at, consult_count.
+ * first_consulted_at is preserved so rank / tiebreaker is never lost on updates.
  */
 
 export interface DbWalletRow {
@@ -61,7 +64,9 @@ export async function ensureTable(): Promise<boolean> {
 }
 
 /**
- * Upsert wallet: insert or update by transactions, timestamps, consult_count
+ * Upsert wallet: insert or update. Never delete.
+ * On conflict we update transactions, last_consulted_at, consult_count only.
+ * first_consulted_at is never overwritten — rank preserved on any update.
  */
 export async function upsertWallet(
   address: string,

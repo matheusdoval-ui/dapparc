@@ -83,7 +83,15 @@ export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-arc-mesh px-4 py-12 text-foreground">
       {/* Navigation */}
-      <nav className="absolute left-0 right-0 top-0 z-20 flex items-center justify-end gap-2 border-b border-arc-accent/20 bg-white/80 backdrop-blur-xl px-6 py-3 sm:px-12 shadow-[0_0_30px_rgba(0,174,239,0.06)] dark:bg-black/40 dark:shadow-[0_0_30px_rgba(0,174,239,0.08)]">
+      <nav className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-4 border-b border-arc-accent/20 bg-white/80 backdrop-blur-xl px-6 py-3 sm:px-12 shadow-[0_0_30px_rgba(0,174,239,0.06)] dark:bg-black/40 dark:shadow-[0_0_30px_rgba(0,174,239,0.08)]">
+        <a
+          href="/"
+          className="flex items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-foreground/90 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent"
+          aria-label="ARCtx home"
+        >
+          <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />
+          <span className="text-base font-bold tracking-tight sm:text-lg">ARCtx</span>
+        </a>
         <div className="flex items-center gap-1 sm:gap-2">
           {[
             { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
@@ -124,10 +132,12 @@ export default function Home() {
               </span>
             </div>
             <h1 className="text-balance text-3xl font-black tracking-tighter sm:text-4xl lg:text-5xl mb-2 text-foreground">
-              ARCtx
+              <span className="uppercase">On-Chain Activity</span>
+              <br />
+              Made Simple
             </h1>
-            <p className="mx-auto mt-3 max-w-sm text-pretty text-sm tracking-wide text-muted-foreground sm:text-base">
-              the dapp that checks your onchain interaction
+            <p className="mx-auto mt-3 max-w-md text-pretty text-sm tracking-wide text-muted-foreground sm:text-base">
+              Search addresses and understand interactions on Arc Network.
             </p>
           </header>
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">

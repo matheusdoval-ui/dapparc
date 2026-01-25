@@ -108,7 +108,8 @@ export async function loadFromKv(): Promise<Map<string, WalletStats>> {
 }
 
 /**
- * Save wallet stats to KV
+ * Save wallet stats to KV.
+ * Never overwrite with fewer entries: load current count first, refuse to shrink (rank preserved).
  */
 export async function saveToKv(walletStatsMap: Map<string, WalletStats>): Promise<void> {
   if (!isKvAvailable()) {
@@ -123,22 +124,27 @@ export async function saveToKv(walletStatsMap: Map<string, WalletStats>): Promis
       return
     }
 
-    // Collect all wallet addresses
+    const toSave = walletStatsMap.size
+    const existing = await kvInstance.smembers(KV_ALL_WALLETS_KEY)
+    const currentCount = Array.isArray(existing) ? existing.length : 0
+    if (currentCount > toSave) {
+      console.warn(
+        `⚠️ Refusing to overwrite KV: would shrink from ${currentCount} to ${toSave} entries. Rank preserved.`
+      )
+      return
+    }
+
     const walletAddresses = Array.from(walletStatsMap.keys())
-    
-    // Update the set of all wallets
     if (walletAddresses.length > 0) {
       await kvInstance.sadd(KV_ALL_WALLETS_KEY, ...walletAddresses)
     }
 
-    // Save each wallet stat
     const savePromises = Array.from(walletStatsMap.entries()).map(async ([address, stats]) => {
       const key = `${KV_KEY_PREFIX}${address.toLowerCase()}`
       await kvInstance.set(key, stats)
     })
 
     await Promise.all(savePromises)
-    
     console.log(`💾 Saved ${walletStatsMap.size} wallet stats to Vercel KV`)
   } catch (error: any) {
     console.error('❌ Error saving to KV:', error.message || error)
