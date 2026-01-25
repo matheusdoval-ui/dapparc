@@ -207,6 +207,7 @@ export async function connectWallet(): Promise<string> {
 /**
  * Register a query as an on-chain transaction
  * Creates a transaction when wallet stats are queried
+ * Suporta Smart Accounts (ERC-4337) com User Operations
  * Function selector for registerQuery(): 0x4d0a2a2a (keccak256("registerQuery()").slice(0, 4))
  */
 export async function registerQueryAsTransaction(contractAddress?: string): Promise<string> {
@@ -222,6 +223,24 @@ export async function registerQueryAsTransaction(contractAddress?: string): Prom
   const address = accounts[0]
 
   try {
+    // Verificar se é Smart Account
+    const { checkIsSmartAccount } = await import('@/lib/user-operation')
+    const isSA = await checkIsSmartAccount(address as `0x${string}`)
+
+    // Se for Smart Account, usar User Operation
+    if (isSA) {
+      const { sendUserOperationRPC, createCheckInUserOperation, getSmartAccountNonce } = await import('@/lib/user-operation')
+      
+      // Check-in simples (callData vazio) para Smart Account
+      const nonce = await getSmartAccountNonce(address as `0x${string}`)
+      const userOp = await createCheckInUserOperation(address as `0x${string}`, nonce)
+      const userOpHash = await sendUserOperationRPC(userOp)
+      
+      console.log('✅ User Operation (check-in) enviada:', userOpHash)
+      return userOpHash
+    }
+
+    // Para contas tradicionais, usar transação normal
     // If contract address is provided, call the contract's registerQuery function
     if (contractAddress && /^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
       // Function selector for registerQuery() is: keccak256("registerQuery()") = 0x4d0a2a2a...

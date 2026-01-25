@@ -2,7 +2,7 @@
 
 import { WalletCard } from "@/components/wallet-card"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Github, Twitter, BookOpen, ExternalLink, Trophy, Globe, Wallet, Search, Sparkles } from "lucide-react"
+import { Github, Twitter, BookOpen, ExternalLink, Trophy, Globe, Wallet, Search, Sparkles, BarChart3 } from "lucide-react"
 import { useState, useEffect } from "react"
 
 const BRAZILIAN_DAPPS = [
@@ -100,6 +100,7 @@ export default function Home() {
         </a>
         <div className="flex items-center gap-1 sm:gap-1.5">
           {[
+            { href: '/dashboard', icon: BarChart3, label: 'Dashboard' },
             { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
             { href: 'https://docs.arc.network/arc/references/contract-addresses', icon: BookOpen, label: 'Docs', external: true },
             { href: 'https://www.arc.network/', icon: ExternalLink, label: 'Explorer', external: true },

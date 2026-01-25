@@ -1,8 +1,6 @@
 # Leaderboard em banco de dados (Neon Postgres)
 
-O leaderboard persiste **rank e número de transações** em um banco Postgres (Neon). Quando `DATABASE_URL` está configurado, o DB é a **única fonte de verdade**: os dados ficam salvos, **nunca são apagados** e sobrevivem a deploys e cold starts.
-
-**Na Vercel, sem `DATABASE_URL` ou Vercel KV, os ranks não são persistidos** (só memória; perde tudo ao redeploy). Configure pelo menos um dos dois.
+O leaderboard pode persistir **rank e número de transações** em um banco Postgres (Neon). Quando `DATABASE_URL` está configurado, ele usa o DB como fonte primária; caso contrário, usa KV/arquivo/memória.
 
 ## Tabela `arc_leaderboard`
 
@@ -60,10 +58,7 @@ Foi adicionado `@neondatabase/serverless`. O módulo do Neon só é carregado qu
 
 ## 6. Verificar
 
-1. Configure `DATABASE_URL` e faça deploy (ou rode localmente).
-2. Acesse **`/api/leaderboard/status`** (ou `https://seu-dominio.vercel.app/api/leaderboard/status`).  
-   - `storage: "database"` e `databaseReady: true` → persistência ativa.  
-   - `storage: "memory"` → nada configurado; ranks não serão salvos.
-3. Conecte uma carteira na home e consulte as stats.
-4. Abra `/leaderboard`: a carteira deve aparecer ordenada por transações.
-5. Atualize a página ou faça novo deploy: os ranks continuam no banco e **não são apagados**.
+1. Configure `DATABASE_URL` e suba o app.
+2. Conecte uma carteira na home e consulte as stats.
+3. Abra `/leaderboard` e confira se a carteira aparece, ordenada por transações.
+4. Atualize a página: o rank e os dados devem vir do banco e persistir.
