@@ -80,104 +80,106 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center bg-black px-4 py-12 text-white">
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-arc-mesh px-4 py-12 text-white">
       {/* Navigation */}
-      <nav className="absolute left-0 right-0 top-0 flex items-center justify-end px-6 py-4 sm:px-12">
-        <div className="flex items-center gap-4">
-          <a
-            href="/leaderboard"
-            className="text-sm text-white/70 transition-colors hover:text-white flex items-center gap-2"
-          >
-            <Trophy className="h-4 w-4" />
-            Leaderboard
-          </a>
-          <a
-            href="https://docs.arc.network/arc/references/contract-addresses"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-white/70 transition-colors hover:text-white flex items-center gap-2"
-          >
-            <BookOpen className="h-4 w-4" />
-            Docs
-          </a>
-          <a
-            href="https://www.arc.network/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-white/70 transition-colors hover:text-white flex items-center gap-2"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Explorer
-          </a>
-          <a
-            href="https://github.com/matheusdoval-ui"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-white/70 transition-colors hover:text-white flex items-center gap-2"
-          >
-            <Github className="h-4 w-4" />
-            GitHub
-          </a>
+      <nav className="absolute left-0 right-0 top-0 z-20 flex items-center justify-end border-b border-arc-accent/20 bg-black/40 backdrop-blur-xl px-6 py-3 sm:px-12 shadow-[0_0_30px_rgba(0,174,239,0.08)]">
+        <div className="flex items-center gap-1 sm:gap-2">
+          {[
+            { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+            { href: 'https://docs.arc.network/arc/references/contract-addresses', icon: BookOpen, label: 'Docs', external: true },
+            { href: 'https://www.arc.network/', icon: ExternalLink, label: 'Explorer', external: true },
+            { href: 'https://github.com/matheusdoval-ui', icon: Github, label: 'GitHub', external: true },
+          ].map(({ href, icon: Icon, label, external }) => (
+            <a
+              key={label}
+              href={href}
+              {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+              className="flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm tracking-wide text-white/70 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent hover:shadow-[0_0_16px_rgba(0,174,239,0.2)]"
+            >
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+            </a>
+          ))}
         </div>
       </nav>
 
-      {/* Main Content */}
-      <div className="relative z-10 flex w-full max-w-4xl flex-col items-center gap-6 text-center">
-        {/* Header */}
-        <header className="mb-12 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5">
-            <span className="relative flex h-2 w-2">
-              {isTestnetActive ? (
-                <>
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500/40 opacity-80" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-                </>
-              ) : (
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-              )}
-            </span>
-            <span className="text-sm font-medium text-white/70">
-              {isTestnetActive ? 'Testnet Live' : 'Testnet Offline'}
-            </span>
+      {/* Main Content: left = ARCtx + wallet, right = Brazilian DApps */}
+      <div className="relative z-10 grid w-full max-w-6xl grid-cols-1 items-start gap-8 px-2 pt-4 lg:grid-cols-2 lg:gap-12">
+        {/* Left: ARCtx quadrant + wallet connection */}
+        <div className="flex flex-col items-center text-center">
+          <header className="mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-arc-accent/20 bg-black/40 px-4 py-2 backdrop-blur-md shadow-[0_0_20px_rgba(0,174,239,0.1)]">
+              <span className="relative flex h-2.5 w-2.5">
+                {isTestnetActive ? (
+                  <>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)]" />
+                  </>
+                ) : (
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                )}
+              </span>
+              <span className="text-sm font-medium tracking-wide text-white/90">
+                {isTestnetActive ? 'Testnet Live' : 'Testnet Offline'}
+              </span>
+            </div>
+            <h1 className="text-balance text-4xl font-black tracking-[0.15em] sm:text-5xl lg:text-6xl mb-2 bg-gradient-to-r from-white via-arc-accent to-cyan-300 bg-clip-text text-transparent text-glow-cyan">
+              ARCtx
+            </h1>
+            <p className="mx-auto mt-3 max-w-sm text-pretty text-sm tracking-wide text-white/50 sm:text-base">
+              the dapp that checks your onchain interaction
+            </p>
+          </header>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <WalletCard />
           </div>
-          <h1 className="text-balance text-5xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl mb-2">
-            ARCtx
-          </h1>
-          <p className="mx-auto mt-4 max-w-md text-pretty text-base text-white/70 sm:text-lg">
-            the dapp that checks your onchain interaction
-          </p>
-        </header>
-
-        {/* Wallet Card */}
-        <WalletCard />
-
-        {/* Brazilian DApps */}
-        <section className="mt-10 w-full max-w-2xl">
-          <div className="mb-3 flex items-center gap-1.5">
-            <span className="flex h-5 w-0.5 rounded-full bg-[#009c3b]" />
-            <span className="flex h-5 w-0.5 rounded-full bg-[#ffdf00]" />
-            <h2 className="text-sm font-bold text-white sm:text-base">Brazilian DApps</h2>
+          <div className="mt-8 grid w-full max-w-md grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {[
+              { value: '50K+', label: 'Active Wallets' },
+              { value: '2.5M', label: 'Transactions' },
+              { value: '<1s', label: 'Block Time' },
+            ].map(({ value, label }) => (
+              <div
+                key={label}
+                className="rounded-xl border border-arc-accent/15 bg-black/30 px-4 py-3 font-mono backdrop-blur-md transition-all hover:border-arc-accent/40 hover:bg-arc-accent/5 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)]"
+              >
+                <div className="text-lg font-bold tabular-nums text-white sm:text-xl bg-gradient-to-r from-white to-arc-accent/90 bg-clip-text text-transparent">
+                  {value}
+                </div>
+                <div className="mt-0.5 text-[10px] uppercase tracking-widest text-white/40 sm:text-xs">{label}</div>
+              </div>
+            ))}
           </div>
-          <p className="mb-4 text-xs text-white/60">dApps built by Brazilian developers on Arc.</p>
-          <div className="grid gap-2 sm:grid-cols-3">
+        </div>
+
+        {/* Right: Brazilian DApps — grid 2 cols, compact */}
+        <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="h-5 w-0.5 rounded-full bg-[#009c3b] shadow-[0_0_6px_rgba(0,156,59,0.5)]" />
+            <span className="h-5 w-0.5 rounded-full bg-[#ffdf00] shadow-[0_0_6px_rgba(255,223,0,0.4)]" />
+            <h2 className="text-sm font-bold tracking-widest uppercase text-white">Brazilian DApps</h2>
+          </div>
+          <p className="mb-3 text-xs tracking-wide text-white/40">dApps built by Brazilian developers on Arc.</p>
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
             {BRAZILIAN_DAPPS.map((dapp) => (
               <a
                 key={dapp.name}
                 href={dapp.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col rounded-lg border border-white/10 bg-white/5 p-3 transition-all hover:scale-[1.02] hover:border-arc-accent/50 hover:bg-white/10"
+                className="group relative flex flex-col overflow-hidden rounded-lg border border-arc-accent/15 bg-black/30 p-2.5 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] hover:border-arc-accent/50 hover:bg-arc-accent/5 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)]"
               >
-                <div className="mb-1 flex items-center gap-2">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-arc-accent/20">
-                    <Globe className="h-3 w-3 text-arc-accent" />
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-arc-accent/40 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <div className="mb-1 flex items-center gap-1.5">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-arc-accent/20 bg-arc-accent/10 transition-all group-hover:border-arc-accent/40 group-hover:bg-arc-accent/20 group-hover:shadow-[0_0_8px_rgba(0,174,239,0.25)]">
+                    <Globe className="h-2.5 w-2.5 text-arc-accent" />
                   </div>
-                  <span className="truncate text-sm font-semibold text-white">{dapp.name}</span>
+                  <span className="truncate text-xs font-semibold tracking-wide text-white">{dapp.name}</span>
                 </div>
-                <p className="mb-2 line-clamp-2 flex-1 text-xs text-white/60">{dapp.description}</p>
+                <p className="mb-1.5 line-clamp-1 text-[10px] leading-snug text-white/40">{dapp.description}</p>
                 <div className="flex flex-wrap gap-1">
-                  {dapp.tags.map((tag) => (
-                    <span key={tag} className="rounded px-1.5 py-0.5 text-[10px] bg-arc-accent/20 text-arc-accent">
+                  {dapp.tags.slice(0, 2).map((tag) => (
+                    <span key={tag} className="rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-arc-accent/90">
                       {tag}
                     </span>
                   ))}
@@ -186,33 +188,17 @@ export default function Home() {
             ))}
           </div>
         </section>
-
-        {/* Stats */}
-        <div className="mt-16 grid grid-cols-3 gap-8 sm:gap-16">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-white sm:text-3xl">50K+</div>
-            <div className="mt-1 text-xs text-white/60 sm:text-sm">Active Wallets</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-white sm:text-3xl">2.5M</div>
-            <div className="mt-1 text-xs text-white/60 sm:text-sm">Transactions</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-white sm:text-3xl">{"<"}1s</div>
-            <div className="mt-1 text-xs text-white/60 sm:text-sm">Block Time</div>
-          </div>
-        </div>
       </div>
 
       {/* Footer */}
-      <footer className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-6 py-4 sm:px-12 text-white/60">
+      <footer className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-between border-t border-arc-accent/15 bg-black/40 backdrop-blur-xl px-6 py-4 sm:px-12 text-white/40 shadow-[0_0_30px_rgba(0,174,239,0.05)]">
         <p className="text-xs">Built on Arc Network testnet</p>
         <div className="flex items-center gap-4">
           <a
             href="https://github.com/matheusdoval-ui"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs transition-colors hover:text-white flex items-center gap-2"
+            className="flex items-center gap-2 text-xs transition-all hover:text-white hover:translate-y-[-1px]"
             aria-label="GitHub repository"
           >
             <Github className="h-4 w-4" />
@@ -222,7 +208,7 @@ export default function Home() {
             href="https://x.com/matheusdovalx"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs transition-colors hover:text-white flex items-center gap-2"
+            className="flex items-center gap-2 text-xs transition-all hover:text-white hover:translate-y-[-1px]"
             aria-label="Follow creator on X"
           >
             <Twitter className="h-4 w-4" />

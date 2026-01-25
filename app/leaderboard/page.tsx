@@ -98,7 +98,7 @@ export default function LeaderboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+      <main className="min-h-screen bg-arc-mesh text-white flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
             <div className="h-16 w-16 animate-spin rounded-full border-4 border-arc-accent/30 border-t-arc-accent mx-auto mb-6" />
@@ -111,15 +111,15 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white relative overflow-hidden">
+    <main className="min-h-screen bg-arc-mesh text-white relative overflow-hidden">
 
       {/* Header */}
-      <div className="relative border-b border-white/10 bg-black/40 backdrop-blur-sm">
+      <div className="relative border-b border-arc-accent/20 bg-black/40 backdrop-blur-xl shadow-[0_0_40px_rgba(0,174,239,0.08)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex items-center justify-between mb-8">
             <a
               href="/"
-              className="group flex items-center gap-2 text-sm text-white/70 hover:text-white transition-all duration-200 hover:translate-x-[-4px]"
+              className="group flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm tracking-wide text-white/70 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent hover:shadow-[0_0_16px_rgba(0,174,239,0.2)]"
             >
               <span>←</span>
               <span>Back to Home</span>
@@ -127,7 +127,7 @@ export default function LeaderboardPage() {
             <Button
               onClick={fetchLeaderboard}
               variant="outline"
-              className="group border-white/20 bg-white/5 hover:bg-white/10 hover:border-arc-accent/50 transition-all duration-200"
+              className="group border-arc-accent/20 bg-black/30 hover:border-arc-accent/50 hover:bg-arc-accent/10 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)] transition-all duration-200"
               disabled={loading}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
@@ -143,10 +143,10 @@ export default function LeaderboardPage() {
               </div>
             </div>
             <div>
-              <h1 className="text-4xl sm:text-5xl font-extrabold mb-3 bg-gradient-to-r from-white via-arc-accent to-cyan-300 bg-clip-text text-transparent">
+              <h1 className="text-4xl sm:text-5xl font-black mb-3 tracking-[0.1em] bg-gradient-to-r from-white via-arc-accent to-cyan-300 bg-clip-text text-transparent">
                 ARC Activity Leaderboard
               </h1>
-              <p className="text-white/70 text-lg">
+              <p className="text-white/60 text-lg tracking-wide">
                 Ranking of the most active wallets on ARC Network
               </p>
               <p className="text-arc-accent/80 text-sm mt-2 font-medium">
@@ -165,13 +165,13 @@ export default function LeaderboardPage() {
       {/* Content */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Registration requirement notice */}
-        <div className="mb-8 rounded-xl border border-arc-accent/30 bg-arc-accent/10 px-6 py-5 backdrop-blur-sm">
+        <div className="mb-8 rounded-xl border border-arc-accent/25 bg-arc-accent/5 px-6 py-5 backdrop-blur-md shadow-[0_0_24px_rgba(0,174,239,0.1)]">
           <div className="flex items-start gap-4">
-            <div className="rounded-full bg-arc-accent/20 p-3 flex-shrink-0">
+            <div className="rounded-xl border border-arc-accent/20 bg-arc-accent/15 p-3 flex-shrink-0 shadow-[0_0_12px_rgba(0,174,239,0.2)]">
               <Trophy className="h-6 w-6 text-arc-accent" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-white mb-2">How to Appear in the Leaderboard</h3>
+              <h3 className="text-lg font-bold tracking-wide text-white mb-2">How to Appear in the Leaderboard</h3>
               <p className="text-white/80 text-sm mb-3">
                 To appear in the ARC Activity Leaderboard, you need to:
               </p>
@@ -202,7 +202,7 @@ export default function LeaderboardPage() {
             </div>
           </Card>
         ) : leaderboard.length === 0 ? (
-          <Card className="border-white/10 bg-white/5 backdrop-blur-sm p-12 text-center shadow-lg">
+          <Card className="border-arc-accent/15 bg-black/30 backdrop-blur-md p-12 text-center shadow-[0_0_30px_rgba(0,174,239,0.08)]">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/5 mb-6">
               <Trophy className="h-10 w-10 text-white/30" />
             </div>
@@ -229,7 +229,7 @@ export default function LeaderboardPage() {
                     transition-all duration-300
                     hover:scale-[1.02] hover:shadow-xl
                     ${rankStyle.glow}
-                    ${isTop3 ? 'hover:border-opacity-100' : 'hover:border-white/20'}
+                    ${isTop3 ? 'hover:border-opacity-100' : 'hover:border-arc-accent/30 hover:shadow-[0_0_24px_rgba(0,174,239,0.15)]'}
                     animate-slide-up
                   `}
                   style={{ 

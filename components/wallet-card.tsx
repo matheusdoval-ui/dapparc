@@ -438,36 +438,38 @@ export function WalletCard() {
       )}
       <div className="relative w-full max-w-md">
         {/* Glow effect behind card */}
-        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-arc-accent/20 via-arc-accent/10 to-arc-accent/20 blur-xl opacity-70" />
+        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-arc-accent/25 via-arc-accent/10 to-arc-accent/25 blur-xl opacity-80" />
         
         {/* Main card */}
-        <div className="relative rounded-2xl border border-white/10 bg-card/80 p-8 backdrop-blur-xl transition-all duration-500 hover:border-arc-accent/30">
+        <div className="relative rounded-2xl border border-arc-accent/15 bg-black/40 p-8 backdrop-blur-xl transition-all duration-500 hover:border-arc-accent/40 hover:shadow-[0_0_32px_rgba(0,174,239,0.2)]">
           {/* Decorative corner accents */}
-          <div className="absolute left-0 top-0 h-20 w-20 rounded-tl-2xl border-l-2 border-t-2 border-arc-accent/30" />
-          <div className="absolute bottom-0 right-0 h-20 w-20 rounded-br-2xl border-b-2 border-r-2 border-arc-accent/30" />
+          <div className="absolute left-0 top-0 h-20 w-20 rounded-tl-2xl border-l-2 border-t-2 border-arc-accent/40" />
+          <div className="absolute bottom-0 right-0 h-20 w-20 rounded-br-2xl border-b-2 border-r-2 border-arc-accent/40" />
+          {/* Top glow line */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-arc-accent/50 to-transparent" />
 
           {/* Header with logo */}
           <div className="mb-8 flex flex-col items-center">
-            <div className="animate-pulse-glow mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-arc-accent to-arc-accent/70">
+            <div className="animate-pulse-glow mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-arc-accent to-arc-accent/70 shadow-[0_0_24px_rgba(0,174,239,0.4)]">
               <Wallet className="h-8 w-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">ARC Network</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Decentralized Infrastructure</p>
+            <h2 className="text-2xl font-bold tracking-wide text-foreground">ARC Network</h2>
+            <p className="mt-1 text-sm tracking-wide text-muted-foreground">Decentralized Infrastructure</p>
           </div>
 
           {!walletData ? (
             <div className="flex flex-col items-center">
               {/* Feature badges */}
               <div className="mb-8 flex flex-wrap justify-center gap-3">
-                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-3 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
                   <Shield className="h-3 w-3 text-arc-accent" />
                   Secure
                 </div>
-                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-3 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
                   <Zap className="h-3 w-3 text-arc-accent" />
                   Fast
                 </div>
-                <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-3 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
                   <Globe className="h-3 w-3 text-arc-accent" />
                   EVM
                 </div>
@@ -496,7 +498,7 @@ export function WalletCard() {
               <Button
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="group relative w-full overflow-hidden rounded-xl bg-arc-accent py-6 text-base font-semibold text-white transition-all duration-300 hover:bg-arc-accent/90 hover:shadow-[0_0_30px_rgba(0,174,239,0.4)] disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
+                className="group relative w-full overflow-hidden rounded-xl border border-arc-accent/30 bg-arc-accent py-6 text-base font-semibold tracking-wide text-white transition-all duration-300 hover:border-arc-accent/60 hover:bg-arc-accent/95 hover:shadow-[0_0_36px_rgba(0,174,239,0.5)] disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                 {isConnecting ? (
