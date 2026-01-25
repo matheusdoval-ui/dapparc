@@ -12,18 +12,26 @@ interface LeaderboardEntry {
 /**
  * API endpoint to fetch leaderboard data
  * GET /api/leaderboard?limit=100
- * 
- * Note: This is a simplified implementation. In production, you would:
- * - Use an indexer or subgraph to track all addresses
- * - Cache results in a database
- * - Update rankings periodically
+ *
+ * When DATABASE_URL (Neon) is set, data is read from Postgres. Ranks are persisted
+ * and never deleted. Otherwise uses Vercel KV or in-memory storage.
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '100', 10)
 
-    // Get leaderboard from storage (based on consulted wallets)
+    // Ensure DB table exists when using Postgres (idempotent)
+    if (process.env.DATABASE_URL?.startsWith('postgres')) {
+      try {
+        const db = await import('@/lib/leaderboard-db')
+        if (db.isDbAvailable()) await db.ensureTable()
+      } catch {
+        /* non-fatal */
+      }
+    }
+
+    // Get leaderboard from storage (DB → KV/file → memory)
     const walletStats = await getLeaderboard(limit)
     console.log(`📊 Leaderboard request: ${walletStats.length} wallets found`)
 
