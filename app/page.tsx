@@ -1,8 +1,29 @@
 "use client"
 
 import { WalletCard } from "@/components/wallet-card"
-import { Github, Twitter, BookOpen, ExternalLink, Trophy } from "lucide-react"
+import { Github, Twitter, BookOpen, ExternalLink, Trophy, Globe } from "lucide-react"
 import { useState, useEffect } from "react"
+
+const BRAZILIAN_DAPPS = [
+  {
+    name: "ARCtx",
+    description: "Check your on-chain interactions on Arc Network.",
+    href: "https://arctx.xyz",
+    tags: ["Wallet", "Analytics"],
+  },
+  {
+    name: "PayZed",
+    description: "Programmable money made simple. Create invoices, receive USDC/EURC payments, and bridge across chains on Arc Testnet.",
+    href: "https://payzed.xyz/",
+    tags: ["Payments", "Invoices", "USDC"],
+  },
+  {
+    name: "ARCDex V2",
+    description: "DeFi trading on Arc Network. Swap tokens and trade on a decentralized exchange.",
+    href: "https://www.arc-dex.xyz/",
+    tags: ["DeFi", "Trading", "DEX"],
+  },
+] as const
 
 export default function Home() {
   const [isTestnetActive, setIsTestnetActive] = useState(true)
@@ -105,6 +126,42 @@ export default function Home() {
 
         {/* Wallet Card */}
         <WalletCard />
+
+        {/* Brazilian DApps */}
+        <section className="mt-10 w-full max-w-2xl">
+          <div className="mb-3 flex items-center gap-1.5">
+            <span className="flex h-5 w-0.5 rounded-full bg-[#009c3b]" />
+            <span className="flex h-5 w-0.5 rounded-full bg-[#ffdf00]" />
+            <h2 className="text-sm font-bold text-white sm:text-base">Brazilian DApps</h2>
+          </div>
+          <p className="mb-4 text-xs text-white/60">dApps built by Brazilian developers on Arc.</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {BRAZILIAN_DAPPS.map((dapp) => (
+              <a
+                key={dapp.name}
+                href={dapp.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col rounded-lg border border-white/10 bg-white/5 p-3 transition-all hover:scale-[1.02] hover:border-arc-accent/50 hover:bg-white/10"
+              >
+                <div className="mb-1 flex items-center gap-2">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-arc-accent/20">
+                    <Globe className="h-3 w-3 text-arc-accent" />
+                  </div>
+                  <span className="truncate text-sm font-semibold text-white">{dapp.name}</span>
+                </div>
+                <p className="mb-2 line-clamp-2 flex-1 text-xs text-white/60">{dapp.description}</p>
+                <div className="flex flex-wrap gap-1">
+                  {dapp.tags.map((tag) => (
+                    <span key={tag} className="rounded px-1.5 py-0.5 text-[10px] bg-arc-accent/20 text-arc-accent">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
 
         {/* Stats */}
         <div className="mt-16 grid grid-cols-3 gap-8 sm:gap-16">
