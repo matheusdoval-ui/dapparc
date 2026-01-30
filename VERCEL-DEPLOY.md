@@ -2,6 +2,28 @@
 
 Este guia detalha como fazer o deploy do ARCtx no Vercel e conectar ao domínio `arctx.xyz`.
 
+---
+
+## ⚡ Resumo rápido (deploy agora)
+
+1. **Push para o GitHub** (no terminal local, na pasta do projeto):
+   ```bash
+   git add .
+   git commit -m "Deploy Vercel"
+   git push origin main
+   ```
+2. **Vercel**: [vercel.com](https://vercel.com) → **Add New Project** → importe o repositório do GitHub.
+3. **Framework**: Next.js (detectado automaticamente). Build: `npm run build`.
+4. **Variáveis de ambiente**: em Settings → Environment Variables, adicione:
+   - `ARC_RPC_URL` = `https://rpc.testnet.arc.network`
+   - `NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS` = `0xD6a210015e8F988646aCaf07D68468FC88bA3D15`
+   - `REGISTRY_CONTRACT_ADDRESS` = `0xD6a210015e8F988646aCaf07D68468FC88bA3D15`
+5. **Deploy**: clique em **Deploy**. Após o build, a URL ficará em `https://seu-projeto.vercel.app`.
+
+Para atualizações: basta dar `git push origin main`; o Vercel faz o deploy automático.
+
+---
+
 ## 📋 Pré-requisitos
 
 1. Conta no [Vercel](https://vercel.com)
@@ -45,27 +67,19 @@ Na tela de configuração do projeto:
 
 ## 🔐 Passo 4: Variáveis de Ambiente
 
-Adicione as seguintes variáveis de ambiente no Vercel:
+Adicione as seguintes variáveis de ambiente no Vercel (Settings → Environment Variables):
 
-1. Clique em **"Environment Variables"**
+| Nome | Valor | Ambientes |
+|------|--------|-----------|
+| `ARC_RPC_URL` | `https://rpc.testnet.arc.network` | Production, Preview, Development |
+| `NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS` | `0xD6a210015e8F988646aCaf07D68468FC88bA3D15` | Production, Preview, Development |
+| `REGISTRY_CONTRACT_ADDRESS` | `0xD6a210015e8F988646aCaf07D68468FC88bA3D15` | Production, Preview, Development |
 
-2. Adicione as variáveis:
+- **ARC_RPC_URL**: RPC da Arc Testnet (já tem valor padrão no código; configurar garante consistência).
+- **NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS**: endereço do contrato ArcLeaderboard (cliente).
+- **REGISTRY_CONTRACT_ADDRESS**: mesmo endereço para as APIs (leaderboard, check-registration).
 
-   **Opcional - ARC RPC URL:**
-   ```
-   Name: ARC_RPC_URL
-   Value: https://rpc.testnet.arc.network
-   Environments: Production, Preview, Development
-   ```
-
-   **Opcional - Contract Address:**
-   ```
-   Name: NEXT_PUBLIC_CONTRACT_ADDRESS
-   Value: 0x... (endereço do contrato deployado)
-   Environments: Production, Preview, Development
-   ```
-
-   > **Nota:** Se você não tiver um contrato deployado, deixe `NEXT_PUBLIC_CONTRACT_ADDRESS` vazio. O dApp funcionará usando self-transfer.
+> **Nota:** O endereço acima é do contrato **ArcLeaderboard** que você deployou. Se fizer um novo deploy do contrato, atualize os dois (NEXT_PUBLIC_ e REGISTRY_) no Vercel e faça um redeploy.
 
 ## 🚀 Passo 5: Fazer Deploy
 
