@@ -87,7 +87,11 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-arc-mesh px-4 py-12 text-foreground">
+    <main className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto text-foreground">
+      {/* Grid background — absolute so it doesn't affect layout */}
+      <div className="absolute inset-0 -z-10 bg-arc-mesh" aria-hidden />
+      <div className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-10 min-w-0">
+        <div className="w-full max-w-xl flex flex-col gap-6">
       {/* Navigation */}
       <nav className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 border-b border-arc-accent/20 bg-white/80 backdrop-blur-xl px-4 py-2 sm:px-6 shadow-[0_0_30px_rgba(0,174,239,0.06)] dark:bg-black/40 dark:shadow-[0_0_30px_rgba(0,174,239,0.08)]">
         <a
@@ -120,7 +124,7 @@ export default function Home() {
       </nav>
 
       {/* Main Content: ARCtx + wallet + stats, then Brazilian DApps abaixo */}
-      <div className="relative z-10 flex w-full max-w-4xl flex-col items-center gap-8 px-2 pt-4 pb-24">
+      <div className="relative z-10 flex w-full flex-col items-center gap-8 px-2 pt-4 pb-24">
         <div className="flex flex-col items-center text-center">
           <header className="mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-arc-accent/20 bg-white/90 px-4 py-2 backdrop-blur-md shadow-[0_0_20px_rgba(0,174,239,0.08)] dark:bg-black/40 dark:shadow-[0_0_20px_rgba(0,174,239,0.1)]">
@@ -147,7 +151,7 @@ export default function Home() {
               Search addresses and understand interactions on Arc Network.
             </p>
           </header>
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full flex items-center justify-center flex-shrink-0">
             <WalletCard />
           </div>
           <div className="mt-4 grid w-full max-w-sm grid-cols-3 gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -170,7 +174,7 @@ export default function Home() {
         </div>
 
         {/* How It Works — landing */}
-        <section className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <section className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="mb-6 rounded-2xl border border-arc-accent/25 bg-white/80 px-6 py-5 text-center backdrop-blur-md dark:bg-black/40">
             <h2 className="text-xl font-black tracking-tight text-foreground sm:text-2xl">How It Works</h2>
             <p className="mx-auto mt-2 max-w-xl text-sm font-medium tracking-wide text-muted-foreground sm:text-base">
@@ -234,7 +238,7 @@ export default function Home() {
         </section>
 
         {/* Brazilian DApps — compacto */}
-        <section className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500 mb-4">
+        <section className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500 mb-4">
           <div className="mb-2 flex items-center gap-1.5">
             <span className="h-5 w-0.5 rounded-full bg-[#009c3b] shadow-[0_0_6px_rgba(0,156,59,0.5)]" />
             <span className="h-5 w-0.5 rounded-full bg-[#ffdf00] shadow-[0_0_6px_rgba(255,223,0,0.4)]" />
@@ -297,6 +301,8 @@ export default function Home() {
           </a>
         </div>
       </footer>
+        </div>
+      </div>
     </main>
   )
 }

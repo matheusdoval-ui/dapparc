@@ -525,9 +525,10 @@ export function WalletCard() {
         />
       )}
       {/* Card padronizado: mesmo layout conectado / desconectado */}
-      <div className="relative w-full max-w-md">
-        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-arc-accent/25 via-arc-accent/10 to-arc-accent/25 blur-xl opacity-80" />
-        <div className="relative flex min-h-[520px] w-full flex-col overflow-hidden rounded-2xl border border-arc-accent/15 bg-white/90 p-5 backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-arc-accent/40 hover:shadow-[0_0_32px_rgba(0,174,239,0.2)] dark:bg-black/40">
+      <div className="w-full max-w-md mx-auto px-4 flex items-center justify-center">
+        <div className="relative w-full flex-shrink-0">
+          <div className="absolute -inset-1 -z-10 rounded-3xl bg-gradient-to-r from-arc-accent/25 via-arc-accent/10 to-arc-accent/25 blur-xl opacity-80" />
+          <div className="relative flex w-full min-w-0 flex-col gap-6 overflow-hidden rounded-2xl border border-arc-accent/15 border-white/10 bg-white/90 p-6 shadow-xl backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-arc-accent/40 hover:shadow-[0_0_32px_rgba(0,174,239,0.2)] dark:bg-black/40">
 
           {/* Header — idêntico em ambos os estados */}
           <div className="mb-4 flex flex-shrink-0 flex-col items-center">
@@ -538,7 +539,7 @@ export function WalletCard() {
             <p className="mt-0.5 text-xs tracking-wide text-muted-foreground">Decentralized Infrastructure</p>
           </div>
 
-          <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="scrollbar-hide min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
           {!walletData ? (
             <div className="flex flex-col items-center">
               {/* Badges — Secure, Fast, EVM */}
@@ -572,7 +573,7 @@ export function WalletCard() {
               <Button
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="group relative w-full overflow-hidden rounded-xl border border-arc-accent/30 bg-arc-accent py-4 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:border-arc-accent/60 hover:bg-arc-accent/95 hover:shadow-[0_0_36px_rgba(0,174,239,0.5)] disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
+                className="group relative w-full py-3 overflow-hidden rounded-xl border border-arc-accent/30 bg-arc-accent text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:border-arc-accent/60 hover:bg-arc-accent/95 hover:shadow-[0_0_36px_rgba(0,174,239,0.5)] disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                 {isConnecting ? (
@@ -601,7 +602,7 @@ export function WalletCard() {
                 <p className="text-center text-[10px] text-muted-foreground/60">
                   Paste ARC address (0x...) to check interactions
                 </p>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
+                <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
                   <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     <Activity className="h-3 w-3 text-arc-accent" />
                     Check address
@@ -678,7 +679,7 @@ export function WalletCard() {
 
               {/* Seções padronizadas — mesmo estilo de card (rounded-xl, border, bg, label) */}
               <div className="w-full space-y-3">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
+                <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
                   <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     <Wallet className="h-3 w-3 text-arc-accent" />
                     Wallet Address
@@ -697,7 +698,7 @@ export function WalletCard() {
                 </div>
 
                 {walletData?.balance !== undefined && (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
+                  <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
                     <div className="mb-2 flex items-center justify-between">
                       <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                         <Coins className="h-3 w-3 text-arc-accent" />
@@ -719,7 +720,7 @@ export function WalletCard() {
                   </div>
                 )}
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
+                <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                       <Activity className="h-3 w-3 text-arc-accent" />
@@ -761,11 +762,12 @@ export function WalletCard() {
                         <span className="text-xs text-muted-foreground">transactions</span>
                       </div>
                       {chartData.length > 0 && (
-                        <div className="mt-4 h-24 w-full animate-in fade-in slide-in-from-bottom-4">
+                        <div className="mt-4 w-full animate-in fade-in slide-in-from-bottom-4">
                           <div className="mb-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
                             <TrendingUp className="h-3 w-3 text-arc-accent" />
                             <span>Growth over last 30 days</span>
                           </div>
+                          <div className="relative w-full aspect-[4/1] min-h-[80px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -775,6 +777,7 @@ export function WalletCard() {
                               <Line type="monotone" dataKey="interactions" stroke="#00AEEF" strokeWidth={2} dot={{ fill: '#00AEEF', r: 3 }} activeDot={{ r: 5 }} />
                             </LineChart>
                           </ResponsiveContainer>
+                          </div>
                         </div>
                       )}
                       {chartData.length === 0 && (
@@ -792,13 +795,14 @@ export function WalletCard() {
               <Button
                 onClick={handleDisconnect}
                 variant="outline"
-                className="w-full rounded-xl border-white/10 bg-transparent py-3 text-xs font-medium text-muted-foreground transition-all duration-200 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
+                className="w-full py-3 rounded-xl border-white/10 bg-transparent text-xs font-medium text-muted-foreground transition-all duration-200 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
               >
                 {isConnected ? 'Disconnect wallet' : 'Clear lookup'}
               </Button>
             </div>
           )}
           </div>
+        </div>
         </div>
       </div>
     </>

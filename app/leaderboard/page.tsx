@@ -1,108 +1,54 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Activity, Trophy, ExternalLink, RefreshCw, Sparkles, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { loadLeaderboard, type LeaderboardEntry } from "@/lib/leaderboard"
 
-interface LeaderboardEntry {
-  address: string
-  transactions: number
-  firstTransactionTimestamp: number | null
-  rank: number
-  contractRegistered?: boolean
-  contractTimestamp?: number
-  contractIndex?: number
-}
+const CACHE_KEY = "leaderboard_cache"
+const REFRESH_INTERVAL_MS = 20000
 
 export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [contractUsers, setContractUsers] = useState<any[]>([])
 
-  const fetchLeaderboard = async () => {
-    setLoading(true)
-    setError(null)
-
+  const fetchData = useCallback(async () => {
     try {
-      // Fetch both leaderboard data and contract users
-      const [leaderboardResponse, contractResponse] = await Promise.allSettled([
-        fetch('/api/leaderboard?limit=100'),
-        fetch('/api/leaderboard-users'),
-      ])
-
-      // Process leaderboard data
-      let raw: LeaderboardEntry[] = []
-      if (leaderboardResponse.status === 'fulfilled' && leaderboardResponse.value.ok) {
-        const data = await leaderboardResponse.value.json()
-        raw = Array.isArray(data.leaderboard) ? data.leaderboard : []
+      const data = await loadLeaderboard()
+      setLeaderboard(data)
+      setError(null)
+      if (typeof window !== "undefined") {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data))
       }
-
-      // Process contract users
-      let contractUsersData: any[] = []
-      if (contractResponse.status === 'fulfilled' && contractResponse.value.ok) {
-        const contractData = await contractResponse.value.json()
-        contractUsersData = Array.isArray(contractData.users) ? contractData.users : []
-        setContractUsers(contractUsersData)
-        console.log('✅ Contract users loaded:', contractUsersData.length)
-      } else {
-        console.warn('⚠️ Could not load contract users:', contractResponse.status === 'rejected' ? contractResponse.reason : 'Unknown error')
-      }
-
-      // Merge contract users with leaderboard data
-      const contractUsersMap = new Map(
-        contractUsersData.map((user: any) => [user.address.toLowerCase(), user])
-      )
-
-      // Enhance leaderboard entries with contract data
-      const enhanced = raw.map((entry) => {
-        const contractUser = contractUsersMap.get(entry.address.toLowerCase())
-        return {
-          ...entry,
-          contractRegistered: !!contractUser,
-          contractTimestamp: contractUser?.timestamp || null,
-          contractIndex: contractUser?.index || null,
-        }
-      })
-
-      // Add contract users that are not in leaderboard yet
-      for (const contractUser of contractUsersData) {
-        const exists = enhanced.find(
-          (e) => e.address.toLowerCase() === contractUser.address.toLowerCase()
-        )
-        if (!exists) {
-          enhanced.push({
-            address: contractUser.address,
-            transactions: 0,
-            firstTransactionTimestamp: contractUser.timestamp,
-            rank: 0, // Will be set after sorting
-            contractRegistered: true,
-            contractTimestamp: contractUser.timestamp,
-            contractIndex: contractUser.index,
-          })
-        }
-      }
-
-      // Sort by transactions (desc) – rank = position; safe for missing values
-      const sorted = [...enhanced].sort(
-        (a, b) => (Number(b?.transactions) || 0) - (Number(a?.transactions) || 0)
-      )
-      const withRank = sorted.map((e, i) => ({ ...e, rank: i + 1 }))
-      setLeaderboard(withRank)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load leaderboard'
-      setError(errorMessage)
-      console.error('Error fetching leaderboard:', err)
+      console.error("RPC error loading leaderboard:", err)
+      setError(err instanceof Error ? err.message : "Failed to load leaderboard")
+      // Never clear — restore from cache instead
+      if (typeof window !== "undefined") {
+        const cache = localStorage.getItem(CACHE_KEY)
+        if (cache) {
+          try {
+            const parsed = JSON.parse(cache) as LeaderboardEntry[]
+            setLeaderboard(parsed)
+          } catch (e) {
+            console.warn("Could not parse leaderboard cache", e)
+          }
+        }
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    fetchLeaderboard()
-  }, [])
+    fetchData()
+
+    const interval = setInterval(fetchData, REFRESH_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [fetchData])
 
   const shortenAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
@@ -150,7 +96,7 @@ export default function LeaderboardPage() {
 
   const isTopThree = (rank: number) => rank <= 3
 
-  if (loading) {
+  if (loading && leaderboard.length === 0) {
     return (
       <main className="min-h-screen bg-arc-mesh text-foreground flex items-center justify-center">
         <div className="text-center">
@@ -180,15 +126,18 @@ export default function LeaderboardPage() {
             </a>
             <div className="flex items-center gap-2">
               <ThemeToggle />
-            <Button
-              onClick={fetchLeaderboard}
-              variant="outline"
-              className="group border-arc-accent/20 bg-white/60 hover:border-arc-accent/50 hover:bg-arc-accent/10 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)] dark:bg-black/30 transition-all duration-200"
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-              Refresh
-            </Button>
+              <Button
+                onClick={() => {
+                  setLoading(true)
+                  fetchData().finally(() => setLoading(false))
+                }}
+                variant="outline"
+                className="group border-arc-accent/20 bg-white/60 hover:border-arc-accent/50 hover:bg-arc-accent/10 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)] dark:bg-black/30 transition-all duration-200"
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                Refresh
+              </Button>
             </div>
           </div>
 
@@ -207,11 +156,11 @@ export default function LeaderboardPage() {
                 Ranking of the most active wallets on ARC Network
               </p>
               <p className="text-arc-accent/80 text-sm mt-2 font-medium">
-                Ranked by number of transactions (most first)
+                Ranked by score (ArcLeaderboard contract)
               </p>
               {leaderboard.length > 0 && (
                 <p className="text-white/50 text-sm mt-1">
-                  {leaderboard.length} {leaderboard.length === 1 ? 'wallet' : 'wallets'} tracked
+                  {leaderboard.length} {leaderboard.length === 1 ? 'wallet' : 'wallets'} tracked • Auto-refresh every 20s
                 </p>
               )}
             </div>
@@ -230,20 +179,16 @@ export default function LeaderboardPage() {
             <div className="flex-1">
               <h3 className="text-lg font-bold tracking-wide text-foreground mb-2">How to Appear in the Leaderboard</h3>
               <p className="text-foreground/80 text-sm mb-3">
-                To appear in the ARC Activity Leaderboard, you need to:
+                Entries are registered on-chain via the ArcLeaderboard contract. Score is assigned by the contract owner. This page reads directly from the blockchain and does not depend on wallet connection.
               </p>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground mb-4">
-                <li>Connect your wallet using MetaMask or Rabby Wallet on the home page</li>
-                <li>Your wallet is added automatically and ranked by <strong>number of transactions</strong> (higher = better rank)</li>
-              </ol>
               <p className="text-xs text-muted-foreground mt-3 italic">
-                Note: Manual wallet lookups are not added. Only connected wallets appear. Rank is by transaction count and is preserved.
+                Data is reloaded from the contract every 20 seconds. Cached data is shown if RPC is temporarily unavailable.
               </p>
             </div>
           </div>
         </div>
 
-        {error ? (
+        {error && leaderboard.length === 0 ? (
           <Card className="border-red-500/30 bg-red-500/10 backdrop-blur-sm p-8 shadow-lg">
             <div className="flex items-start gap-4">
               <div className="rounded-full bg-red-500/20 p-3">
@@ -253,32 +198,34 @@ export default function LeaderboardPage() {
                 <p className="text-red-400 mb-2 font-semibold text-lg">Error loading leaderboard</p>
                 <p className="text-white/70 text-sm mb-4">{error}</p>
                 <p className="text-white/60 text-xs">
-                  Note: The leaderboard requires address tracking. For production, implement with an indexer or subgraph.
+                  Ensure NEXT_PUBLIC_ARC_RPC is set and the ArcLeaderboard contract is deployed.
                 </p>
               </div>
             </div>
           </Card>
-        ) : leaderboard.length === 0 ? (
+        ) : error && leaderboard.length > 0 ? (
+          <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
+            Showing cached data. RPC error: {error}
+          </div>
+        ) : null}
+
+        {leaderboard.length === 0 && !loading ? (
           <Card className="border-arc-accent/15 bg-white/60 backdrop-blur-md p-12 text-center shadow-[0_0_30px_rgba(0,174,239,0.06)] dark:bg-black/30 dark:shadow-[0_0_30px_rgba(0,174,239,0.08)]">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-foreground/5 mb-6">
               <Trophy className="h-10 w-10 text-muted-foreground" />
             </div>
-            <p className="text-foreground/80 mb-2 text-lg font-medium">No leaderboard data available</p>
+            <p className="text-foreground/80 mb-2 text-lg font-medium">No leaderboard data yet</p>
             <p className="text-muted-foreground text-sm">
-              Connect your wallet on the home page to appear here. Entries are ranked by number of transactions.
+              The ArcLeaderboard contract has no registered users. Connect and interact on the home page to register.
             </p>
-            {contractUsers.length > 0 && (
-              <p className="text-muted-foreground text-xs mt-2">
-                {contractUsers.length} user{contractUsers.length !== 1 ? 's' : ''} registered on-chain via contract
-              </p>
-            )}
           </Card>
         ) : (
           <div className="space-y-3">
             {leaderboard.map((entry, index) => {
-              const rankStyle = getRankStyle(entry.rank)
-              const isTop3 = isTopThree(entry.rank)
-              
+              const rankStyle = getRankStyle(entry.rank ?? index + 1)
+              const isTop3 = isTopThree(entry.rank ?? index + 1)
+              const rank = entry.rank ?? index + 1
+
               return (
                 <Card
                   key={entry.address}
@@ -294,20 +241,17 @@ export default function LeaderboardPage() {
                     ${isTop3 ? 'hover:border-opacity-100' : 'hover:border-arc-accent/30 hover:shadow-[0_0_24px_rgba(0,174,239,0.15)]'}
                     animate-slide-up
                   `}
-                  style={{ 
+                  style={{
                     animationDelay: `${index * 50}ms`,
                     animationDuration: '0.5s',
                     animationFillMode: 'both'
                   }}
                 >
-                  {/* Glow effect for top 3 */}
                   {isTop3 && (
                     <div className={`absolute inset-0 bg-gradient-to-r ${rankStyle.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300 blur-xl`} />
                   )}
-                  
-                  {/* Content */}
+
                   <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                    {/* Rank Badge */}
                     <div className="flex-shrink-0">
                       <div className={`
                         relative
@@ -322,21 +266,20 @@ export default function LeaderboardPage() {
                       `}>
                         {isTop3 ? (
                           <div className="relative">
-                            {getRankIcon(entry.rank)}
-                            {entry.rank === 1 && (
+                            {getRankIcon(rank)}
+                            {rank === 1 && (
                               <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-yellow-300 animate-pulse" />
                             )}
                           </div>
                         ) : (
-                          <span className="font-extrabold">#{entry.rank}</span>
+                          <span className="font-extrabold">#{rank}</span>
                         )}
-                        {entry.rank === 1 && (
+                        {rank === 1 && (
                           <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-arc-accent rounded-2xl blur opacity-50 animate-pulse" />
                         )}
                       </div>
                     </div>
 
-                    {/* Address Section */}
                     <div className="flex-1 min-w-0 w-full sm:w-auto">
                       <div className="flex items-center gap-3 mb-2">
                         <p className="font-mono text-lg sm:text-xl font-bold text-white group-hover:text-arc-accent transition-colors">
@@ -355,33 +298,30 @@ export default function LeaderboardPage() {
                         <div className="flex items-center gap-2 mt-2">
                           <span className={`
                             text-xs font-semibold px-2 py-0.5 rounded-full
-                            ${entry.rank === 1 ? 'bg-yellow-400/20 text-yellow-300' : ''}
-                            ${entry.rank === 2 ? 'bg-gray-400/20 text-gray-300' : ''}
-                            ${entry.rank === 3 ? 'bg-orange-400/20 text-orange-300' : ''}
+                            ${rank === 1 ? 'bg-yellow-400/20 text-yellow-300' : ''}
+                            ${rank === 2 ? 'bg-gray-400/20 text-gray-300' : ''}
+                            ${rank === 3 ? 'bg-orange-400/20 text-orange-300' : ''}
                           `}>
-                            {entry.rank === 1 ? '🏆 Champion' : entry.rank === 2 ? '🥈 Runner-up' : '🥉 Third Place'}
+                            {rank === 1 ? '🏆 Champion' : rank === 2 ? '🥈 Runner-up' : '🥉 Third Place'}
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Stats */}
                     <div className="flex items-center gap-6 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
-                      {/* Transactions */}
                       <div className="text-center sm:text-right">
                         <div className="flex items-center gap-2 text-white/60 mb-2 justify-center sm:justify-end">
                           <Activity className="h-4 w-4" />
-                          <span className="text-xs uppercase tracking-wider text-xs">Transactions</span>
+                          <span className="text-xs uppercase tracking-wider">Score</span>
                         </div>
                         <p className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-transparent">
-                          {entry.transactions.toLocaleString()}
+                          {entry.score.toLocaleString()}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Progress bar for top 3 */}
-                  {isTop3 && entry.rank === 1 && leaderboard.length > 1 && (
+                  {isTop3 && rank === 1 && leaderboard.length > 1 && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-400 via-arc-accent to-cyan-300 opacity-50" />
                   )}
                 </Card>

@@ -212,7 +212,7 @@ Check your wallet interaction level on ARC Network!
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="overflow-hidden border-white/10 bg-background/95 p-0 backdrop-blur-xl sm:max-w-lg">
+      <DialogContent className="overflow-hidden border border-white/10 bg-background/95 backdrop-blur-xl shadow-xl p-0 sm:max-w-lg w-full max-w-[calc(100%-2rem)]">
         <DialogTitle className="sr-only">Interaction Level</DialogTitle>
         
         {/* Animated Background Particles */}
@@ -239,7 +239,7 @@ Check your wallet interaction level on ARC Network!
           }}
         />
         
-        <div className="relative flex flex-col items-center px-6 py-8">
+        <div className="relative flex flex-col items-center justify-center px-6 py-8 w-full max-w-md mx-auto min-w-0">
           {/* Level Badge with Animation */}
           <div 
             className={`relative mb-6 ${showContent ? 'animate-scale-in' : 'opacity-0'}`}
