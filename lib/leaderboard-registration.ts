@@ -17,15 +17,21 @@ import {
   sendUserOperationRPC,
 } from './user-operation'
 
-// Arc Testnet Configuration
+// Arc Testnet Configuration — Arc does NOT support ENS (ensAddress: null)
 const ARC_RPC_URL = process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.network'
+const ARC_NETWORK = { name: 'arc', chainId: 5042002, ensAddress: null as string | null }
 
-// Registry Contract Address
-const REGISTRY_CONTRACT_ADDRESS = (
-  process.env.REGISTRY_CONTRACT_ADDRESS ||
-  process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS ||
-  ''
-).toLowerCase()
+function getRegistryAddress(): string | null {
+  const raw =
+    process.env.REGISTRY_CONTRACT_ADDRESS ||
+    process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS ||
+    ''
+  const address = raw.trim().toLowerCase()
+  if (!address || !address.startsWith('0x')) return null
+  return address
+}
+
+const REGISTRY_CONTRACT_ADDRESS = getRegistryAddress()
 
 // Private Key from .env (for provider)
 // Usar a Private Key fornecida ou do .env
@@ -55,16 +61,13 @@ export async function checkLeaderboardRegistration(
   const normalizedAddress = walletAddress.toLowerCase()
 
   try {
-    // Criar provider usando Private Key (se disponível) ou RPC público
-    let provider: JsonRpcProvider
-    if (PRIVATE_KEY) {
-      const wallet = new Wallet(PRIVATE_KEY, new JsonRpcProvider(ARC_RPC_URL))
-      provider = wallet.provider as JsonRpcProvider
-    } else {
-      provider = new JsonRpcProvider(ARC_RPC_URL)
-    }
+    // Arc does not support ENS — use network config with ensAddress: null
+    const provider = new JsonRpcProvider(ARC_RPC_URL, ARC_NETWORK)
+    const resolvedProvider = PRIVATE_KEY
+      ? new Wallet(PRIVATE_KEY, provider).provider as JsonRpcProvider
+      : provider
 
-    const contract = new Contract(REGISTRY_CONTRACT_ADDRESS, REGISTRY_ABI, provider)
+    const contract = new Contract(REGISTRY_CONTRACT_ADDRESS!, REGISTRY_ABI, resolvedProvider)
 
     // Verificar registro
     const isRegistered = await contract.isRegistered(normalizedAddress)
