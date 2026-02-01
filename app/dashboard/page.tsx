@@ -147,9 +147,9 @@ export default function DashboardPage() {
     })) || []
 
   return (
-    <main className="min-h-screen bg-arc-mesh px-4 py-8 text-foreground">
+    <main className="min-h-screen bg-background px-4 py-8 text-foreground">
       {/* Header */}
-      <header className="mb-8 flex items-center justify-between border-b border-arc-accent/20 bg-white/80 backdrop-blur-xl px-4 py-3 sm:px-6 dark:bg-black/40">
+      <header className="mb-8 flex items-center justify-between border-b px-4 py-3 sm:px-6">
         <div className="flex items-center gap-4">
           <Link
             href="/"

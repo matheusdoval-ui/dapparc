@@ -524,19 +524,17 @@ export function WalletCard() {
           interactions={walletData.interactions}
         />
       )}
-      {/* Card padronizado: mesmo layout conectado / desconectado */}
-      <div className="w-full max-w-md mx-auto px-4 flex items-center justify-center">
-        <div className="relative w-full flex-shrink-0">
-          <div className="absolute -inset-1 -z-10 rounded-3xl bg-gradient-to-r from-arc-accent/25 via-arc-accent/10 to-arc-accent/25 blur-xl opacity-80" />
-          <div className="relative flex w-full min-w-0 flex-col gap-6 overflow-hidden rounded-2xl border border-arc-accent/15 border-white/10 bg-white/90 p-6 shadow-xl backdrop-blur-xl transition-[border-color,box-shadow] duration-300 hover:border-arc-accent/40 hover:shadow-[0_0_32px_rgba(0,174,239,0.2)] dark:bg-black/40">
+      {/* Card */}
+      <div className="w-full max-w-md mx-auto px-4">
+        <div className="rounded-xl border bg-card p-6 shadow-sm">
 
-          {/* Header — idêntico em ambos os estados */}
-          <div className="mb-4 flex flex-shrink-0 flex-col items-center">
-            <div className="animate-pulse-glow mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-arc-accent to-arc-accent/70 shadow-[0_0_20px_rgba(0,174,239,0.35)]">
-              <Wallet className="h-6 w-6 text-white" />
+          {/* Header */}
+          <div className="mb-4 flex flex-col items-center">
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+              <Wallet className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h2 className="text-lg font-bold tracking-wide text-foreground">ARC Network</h2>
-            <p className="mt-0.5 text-xs tracking-wide text-muted-foreground">Decentralized Infrastructure</p>
+            <h2 className="text-lg font-semibold">ARC Network</h2>
+            <p className="text-xs text-muted-foreground">Decentralized Infrastructure</p>
           </div>
 
           <div className="scrollbar-hide min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
@@ -573,9 +571,8 @@ export function WalletCard() {
               <Button
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="group relative w-full py-3 overflow-hidden rounded-xl border border-arc-accent/30 bg-arc-accent text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:border-arc-accent/60 hover:bg-arc-accent/95 hover:shadow-[0_0_36px_rgba(0,174,239,0.5)] disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
+                className="w-full py-3"
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                 {isConnecting ? (
                   <span className="flex items-center justify-center gap-2 relative z-10">
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -589,7 +586,7 @@ export function WalletCard() {
                 )}
               </Button>
 
-              <p className="mt-3 text-[10px] text-muted-foreground/60">
+              <p className="mt-3 text-xs text-muted-foreground">
                 MetaMask or Rabby • ARC Testnet
               </p>
 
@@ -633,7 +630,8 @@ export function WalletCard() {
                       <Button
                         onClick={(e) => { e.preventDefault(); if (!isCheckingAddress && !isLoadingStats) handleManualLookup() }}
                         disabled={isCheckingAddress || isLoadingStats}
-                        className={`flex-shrink-0 rounded-xl px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition-all active:scale-95 ${
+                        size="sm"
+                        className={`flex-shrink-0 ${
                           addressValidation?.isValid && !isCheckingAddress && !isLoadingStats
                             ? 'bg-arc-accent hover:bg-arc-accent/90 hover:shadow-[0_0_20px_rgba(0,174,239,0.4)]'
                             : 'bg-white/10 hover:bg-white/20 disabled:opacity-60'
@@ -792,17 +790,17 @@ export function WalletCard() {
                 </div>
               </div>
 
-              <Button
+              <MotionButton
                 onClick={handleDisconnect}
                 variant="outline"
+                whileTap={{ scale: 0.97 }}
                 className="w-full py-3 rounded-xl border-white/10 bg-transparent text-xs font-medium text-muted-foreground transition-all duration-200 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
               >
                 {isConnected ? 'Disconnect wallet' : 'Clear lookup'}
-              </Button>
+              </MotionButton>
             </div>
           )}
           </div>
-        </div>
         </div>
       </div>
     </>

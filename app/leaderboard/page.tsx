@@ -26,7 +26,6 @@ export default function LeaderboardPage() {
     } catch (err) {
       console.error("RPC error loading leaderboard:", err)
       setError(err instanceof Error ? err.message : "Failed to load leaderboard")
-      // Never clear — restore from cache instead
       if (typeof window !== "undefined") {
         const cache = localStorage.getItem(CACHE_KEY)
         if (cache) {
@@ -45,285 +44,107 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     fetchData()
-
     const interval = setInterval(fetchData, REFRESH_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [fetchData])
 
-  const shortenAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
-  }
+  const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`
 
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Crown className="h-6 w-6" />
-    if (rank === 2) return <Trophy className="h-5 w-5" />
-    if (rank === 3) return <Trophy className="h-5 w-5" />
+    if (rank === 1) return <Crown className="h-5 w-5" />
+    if (rank === 2) return <Trophy className="h-4 w-4" />
+    if (rank === 3) return <Trophy className="h-4 w-4" />
     return `#${rank}`
-  }
-
-  const getRankStyle = (rank: number) => {
-    if (rank === 1) {
-      return {
-        gradient: 'from-yellow-400 via-arc-accent to-cyan-300',
-        glow: 'shadow-[0_0_30px_rgba(0,174,239,0.5)]',
-        border: 'border-yellow-400/50',
-        scale: 'scale-105'
-      }
-    }
-    if (rank === 2) {
-      return {
-        gradient: 'from-gray-300 to-gray-500',
-        glow: 'shadow-[0_0_20px_rgba(156,163,175,0.4)]',
-        border: 'border-gray-400/50',
-        scale: 'scale-103'
-      }
-    }
-    if (rank === 3) {
-      return {
-        gradient: 'from-orange-400 to-orange-600',
-        glow: 'shadow-[0_0_20px_rgba(251,146,60,0.4)]',
-        border: 'border-orange-400/50',
-        scale: 'scale-103'
-      }
-    }
-    return {
-      gradient: 'from-arc-accent/80 to-cyan-300/80',
-      glow: '',
-      border: 'border-white/10',
-      scale: ''
-    }
   }
 
   const isTopThree = (rank: number) => rank <= 3
 
   if (loading && leaderboard.length === 0) {
     return (
-      <main className="min-h-screen bg-arc-mesh text-foreground flex items-center justify-center">
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
-          <div className="relative">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-arc-accent/30 border-t-arc-accent mx-auto mb-6" />
-            <Sparkles className="h-8 w-8 text-arc-accent absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
-          </div>
-          <p className="text-muted-foreground text-lg">Loading leaderboard...</p>
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading leaderboard...</p>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-arc-mesh text-foreground relative overflow-hidden">
-
-      {/* Header */}
-      <div className="relative border-b border-arc-accent/20 bg-white/80 backdrop-blur-xl shadow-[0_0_40px_rgba(0,174,239,0.06)] dark:bg-black/40 dark:shadow-[0_0_40px_rgba(0,174,239,0.08)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between mb-8">
-            <a
-              href="/"
-              className="group flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm tracking-wide text-foreground/70 transition-all hover:border-arc-accent/30 hover:bg-arc-accent/5 hover:text-arc-accent hover:shadow-[0_0_16px_rgba(0,174,239,0.2)]"
-            >
-              <span>←</span>
-              <span>Back to Home</span>
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="border-b">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-6">
+            <a href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+              <span>←</span> Back to Home
             </a>
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <Button
-                onClick={() => {
-                  setLoading(true)
-                  fetchData().finally(() => setLoading(false))
-                }}
-                variant="outline"
-                className="group border-arc-accent/20 bg-white/60 hover:border-arc-accent/50 hover:bg-arc-accent/10 hover:shadow-[0_0_20px_rgba(0,174,239,0.2)] dark:bg-black/30 transition-all duration-200"
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-                Refresh
+              <Button onClick={() => { setLoading(true); fetchData().finally(() => setLoading(false)) }} variant="outline" size="sm" disabled={loading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
               </Button>
             </div>
           </div>
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-arc-accent to-cyan-300 rounded-2xl blur-xl opacity-50 animate-pulse" />
-              <div className="relative h-20 w-20 rounded-2xl bg-gradient-to-br from-arc-accent to-cyan-300 flex items-center justify-center shadow-[0_0_30px_rgba(0,174,239,0.5)]">
-                <Trophy className="h-10 w-10 text-white" />
-              </div>
-            </div>
+          <div className="flex items-center gap-4">
+            <Trophy className="h-10 w-10 text-primary" />
             <div>
-              <h1 className="text-4xl sm:text-5xl font-black mb-3 tracking-[0.1em] bg-gradient-to-r from-foreground via-arc-accent to-cyan-300 bg-clip-text text-transparent dark:from-white">
-                ARC Activity Leaderboard
-              </h1>
-              <p className="text-muted-foreground text-lg tracking-wide">
-                Ranking of the most active wallets on ARC Network
-              </p>
-              <p className="text-arc-accent/80 text-sm mt-2 font-medium">
-                Ranked by score (ArcLeaderboard contract)
-              </p>
-              {leaderboard.length > 0 && (
-                <p className="text-white/50 text-sm mt-1">
-                  {leaderboard.length} {leaderboard.length === 1 ? 'wallet' : 'wallets'} tracked • Auto-refresh every 20s
-                </p>
-              )}
+              <h1 className="text-2xl font-bold">ARC Activity Leaderboard</h1>
+              <p className="text-sm text-muted-foreground">Ranking of the most active wallets on ARC Network. Ranked by score (ArcLeaderboard contract).</p>
+              {leaderboard.length > 0 && <p className="text-xs text-muted-foreground mt-1">{leaderboard.length} wallets • Auto-refresh every 20s</p>}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Registration requirement notice */}
-        <div className="mb-8 rounded-xl border border-arc-accent/25 bg-arc-accent/5 px-6 py-5 backdrop-blur-md shadow-[0_0_24px_rgba(0,174,239,0.1)]">
-          <div className="flex items-start gap-4">
-            <div className="rounded-xl border border-arc-accent/20 bg-arc-accent/15 p-3 flex-shrink-0 shadow-[0_0_12px_rgba(0,174,239,0.2)]">
-              <Trophy className="h-6 w-6 text-arc-accent" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold tracking-wide text-foreground mb-2">How to Appear in the Leaderboard</h3>
-              <p className="text-foreground/80 text-sm mb-3">
-                Entries are registered on-chain via the ArcLeaderboard contract. Score is assigned by the contract owner. This page reads directly from the blockchain and does not depend on wallet connection.
-              </p>
-              <p className="text-xs text-muted-foreground mt-3 italic">
-                Data is reloaded from the contract every 20 seconds. Cached data is shown if RPC is temporarily unavailable.
-              </p>
-            </div>
-          </div>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-6 rounded-lg border bg-card p-4">
+          <h3 className="font-medium mb-2">How to Appear in the Leaderboard</h3>
+          <p className="text-sm text-muted-foreground">Entries are registered on-chain via the ArcLeaderboard contract. Score is assigned by the contract owner. Data reloads every 20 seconds.</p>
         </div>
 
         {error && leaderboard.length === 0 ? (
-          <Card className="border-red-500/30 bg-red-500/10 backdrop-blur-sm p-8 shadow-lg">
-            <div className="flex items-start gap-4">
-              <div className="rounded-full bg-red-500/20 p-3">
-                <Trophy className="h-6 w-6 text-red-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-red-400 mb-2 font-semibold text-lg">Error loading leaderboard</p>
-                <p className="text-white/70 text-sm mb-4">{error}</p>
-                <p className="text-white/60 text-xs">
-                  Ensure NEXT_PUBLIC_ARC_RPC is set and the ArcLeaderboard contract is deployed.
-                </p>
-              </div>
-            </div>
+          <Card className="border-destructive/50 bg-destructive/10 p-6">
+            <p className="text-destructive font-medium mb-2">Error loading leaderboard</p>
+            <p className="text-sm text-muted-foreground mb-2">{error}</p>
+            <p className="text-xs text-muted-foreground">Ensure NEXT_PUBLIC_ARC_RPC is set and the ArcLeaderboard contract is deployed.</p>
           </Card>
         ) : error && leaderboard.length > 0 ? (
-          <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
-            Showing cached data. RPC error: {error}
-          </div>
+          <div className="mb-4 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm">Showing cached data. RPC error: {error}</div>
         ) : null}
 
         {leaderboard.length === 0 && !loading ? (
-          <Card className="border-arc-accent/15 bg-white/60 backdrop-blur-md p-12 text-center shadow-[0_0_30px_rgba(0,174,239,0.06)] dark:bg-black/30 dark:shadow-[0_0_30px_rgba(0,174,239,0.08)]">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-foreground/5 mb-6">
-              <Trophy className="h-10 w-10 text-muted-foreground" />
-            </div>
-            <p className="text-foreground/80 mb-2 text-lg font-medium">No leaderboard data yet</p>
-            <p className="text-muted-foreground text-sm">
-              The ArcLeaderboard contract has no registered users. Connect and interact on the home page to register.
-            </p>
+          <Card className="p-12 text-center">
+            <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="font-medium mb-2">No leaderboard data yet</p>
+            <p className="text-sm text-muted-foreground">The ArcLeaderboard contract has no registered users. Connect and interact on the home page to register.</p>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {leaderboard.map((entry, index) => {
-              const rankStyle = getRankStyle(entry.rank ?? index + 1)
-              const isTop3 = isTopThree(entry.rank ?? index + 1)
               const rank = entry.rank ?? index + 1
-
+              const isTop3 = isTopThree(rank)
               return (
-                <Card
-                  key={entry.address}
-                  className={`
-                    group relative overflow-hidden
-                    border ${rankStyle.border}
-                    ${isTop3 ? 'bg-gradient-to-r from-white/10 to-white/5' : 'bg-white/5'}
-                    backdrop-blur-sm
-                    p-6
-                    transition-all duration-300
-                    hover:scale-[1.02] hover:shadow-xl
-                    ${rankStyle.glow}
-                    ${isTop3 ? 'hover:border-opacity-100' : 'hover:border-arc-accent/30 hover:shadow-[0_0_24px_rgba(0,174,239,0.15)]'}
-                    animate-slide-up
-                  `}
-                  style={{
-                    animationDelay: `${index * 50}ms`,
-                    animationDuration: '0.5s',
-                    animationFillMode: 'both'
-                  }}
-                >
-                  {isTop3 && (
-                    <div className={`absolute inset-0 bg-gradient-to-r ${rankStyle.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300 blur-xl`} />
-                  )}
-
-                  <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                    <div className="flex-shrink-0">
-                      <div className={`
-                        relative
-                        ${isTop3 ? 'h-16 w-16' : 'h-14 w-14'}
-                        rounded-2xl
-                        bg-gradient-to-br ${rankStyle.gradient}
-                        flex items-center justify-center
-                        text-white font-bold
-                        ${isTop3 ? 'text-2xl shadow-lg' : 'text-lg'}
-                        ${rankStyle.scale}
-                        transition-transform duration-300 group-hover:scale-110
-                      `}>
-                        {isTop3 ? (
-                          <div className="relative">
-                            {getRankIcon(rank)}
-                            {rank === 1 && (
-                              <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-yellow-300 animate-pulse" />
-                            )}
-                          </div>
-                        ) : (
-                          <span className="font-extrabold">#{rank}</span>
-                        )}
-                        {rank === 1 && (
-                          <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-arc-accent rounded-2xl blur opacity-50 animate-pulse" />
-                        )}
-                      </div>
+                <Card key={entry.address} className={`p-4 ${isTop3 ? 'border-primary/30' : ''}`}>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isTop3 ? 'bg-primary text-primary-foreground' : 'bg-muted'} font-bold text-sm`}>
+                      {getRankIcon(rank)}
                     </div>
-
-                    <div className="flex-1 min-w-0 w-full sm:w-auto">
-                      <div className="flex items-center gap-3 mb-2">
-                        <p className="font-mono text-lg sm:text-xl font-bold text-white group-hover:text-arc-accent transition-colors">
-                          {shortenAddress(entry.address)}
-                        </p>
-                        <a
-                          href={`https://testnet.arcscan.app/address/${entry.address}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-white/50 hover:text-arc-accent transition-all duration-200 hover:scale-110"
-                        >
-                          <ExternalLink className="h-4 w-4" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono font-medium">{shortenAddress(entry.address)}</p>
+                        <a href={`https://testnet.arcscan.app/address/${entry.address}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                          <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                       </div>
-                      {isTop3 && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className={`
-                            text-xs font-semibold px-2 py-0.5 rounded-full
-                            ${rank === 1 ? 'bg-yellow-400/20 text-yellow-300' : ''}
-                            ${rank === 2 ? 'bg-gray-400/20 text-gray-300' : ''}
-                            ${rank === 3 ? 'bg-orange-400/20 text-orange-300' : ''}
-                          `}>
-                            {rank === 1 ? '🏆 Champion' : rank === 2 ? '🥈 Runner-up' : '🥉 Third Place'}
-                          </span>
-                        </div>
-                      )}
+                      {isTop3 && <span className="text-xs text-muted-foreground">{rank === 1 ? 'Champion' : rank === 2 ? 'Runner-up' : 'Third Place'}</span>}
                     </div>
-
-                    <div className="flex items-center gap-6 sm:gap-8 w-full sm:w-auto justify-between sm:justify-end">
-                      <div className="text-center sm:text-right">
-                        <div className="flex items-center gap-2 text-white/60 mb-2 justify-center sm:justify-end">
-                          <Activity className="h-4 w-4" />
-                          <span className="text-xs uppercase tracking-wider">Score</span>
-                        </div>
-                        <p className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-transparent">
-                          {entry.score.toLocaleString()}
-                        </p>
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                        <Activity className="h-3.5 w-3.5" /> Score
                       </div>
+                      <p className="font-semibold">{entry.score.toLocaleString()}</p>
                     </div>
                   </div>
-
-                  {isTop3 && rank === 1 && leaderboard.length > 1 && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-400 via-arc-accent to-cyan-300 opacity-50" />
-                  )}
                 </Card>
               )
             })}
