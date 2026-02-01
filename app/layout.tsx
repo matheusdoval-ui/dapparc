@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { RegistrationProvider } from '@/contexts/registration-context'
+import { WalletErrorHandler } from '@/components/wallet-error-handler'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
         style={{ fontFamily: 'ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <WalletErrorHandler />
           <RegistrationProvider>
             {children}
             <Analytics />

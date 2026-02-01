@@ -10,8 +10,8 @@
 
 import { type Address, type Hex, encodeFunctionData, parseAbi } from 'viem'
 
-// Arc Testnet Configuration
-const ARC_RPC_URL = process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.network'
+// Arc Testnet Configuration — use NEXT_PUBLIC for client-side
+const ARC_RPC_URL = process.env.NEXT_PUBLIC_ARC_RPC || process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.network'
 const ARC_CHAIN_ID = 5042002
 
 // Configuração do Bundler e Paymaster

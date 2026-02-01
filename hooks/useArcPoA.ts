@@ -13,10 +13,12 @@
  *   }, [isConnected, canProve]);
  */
 
+'use client'
+
 import { useState, useEffect, useCallback } from 'react'
 import { ethers } from 'ethers'
 
-// Endereço do contrato (será preenchido após deploy)
+// Endereço do contrato (apenas NEXT_PUBLIC no client)
 const ARC_POA_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ARC_POA_ADDRESS || ''
 
 // ABI mínimo do contrato (apenas funções necessárias)
@@ -146,26 +148,26 @@ export function useArcPoA(): UseArcPoAReturn {
   const proveViewTransactions = useCallback(() => proveActivity('view_transactions'), [proveActivity])
   const proveUsedDApp = useCallback(() => proveActivity('used_dapp'), [proveActivity])
 
-  // Auto-verificar quando a carteira estiver conectada
+  // Auto-verificar quando a carteira estiver conectada (browser only)
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!window.ethereum) return
+
     const checkWallet = async () => {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const provider = new ethers.BrowserProvider(window.ethereum)
-          const accounts = await provider.listAccounts()
-          if (accounts.length > 0) {
-            await checkCanProve(accounts[0].address)
-          }
-        } catch (err) {
-          // Silencioso - carteira não conectada
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum)
+        const accounts = await provider.listAccounts()
+        if (accounts.length > 0) {
+          await checkCanProve(accounts[0].address)
         }
+      } catch {
+        // Silencioso - carteira não conectada
       }
     }
 
     checkWallet()
-    
-    // Verificar periodicamente
-    const interval = setInterval(checkWallet, 30000) // A cada 30s
+
+    const interval = setInterval(checkWallet, 30000)
     return () => clearInterval(interval)
   }, [checkCanProve])
 

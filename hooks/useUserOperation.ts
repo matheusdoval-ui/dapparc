@@ -216,28 +216,29 @@ export function useUserOperation(): UseUserOperationReturn {
     [currentAddress, isSmartAccount]
   )
 
-  // Auto-verificar quando carteira conecta
+  // Auto-verificar quando carteira conecta (browser only)
   useEffect(() => {
+    if (typeof window === 'undefined') return
+
     const checkWallet = async () => {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        try {
-          const accounts = await getAccounts()
-          if (accounts && accounts.length > 0) {
-            await checkAccount(accounts[0] as Address)
-          }
-        } catch (err) {
-          // Silencioso - carteira não conectada
+      try {
+        if (!window.ethereum) return
+        const accounts = await getAccounts()
+        if (accounts && accounts.length > 0) {
+          await checkAccount(accounts[0] as Address)
         }
+      } catch {
+        // Silencioso - carteira não conectada
       }
     }
 
     checkWallet()
-    
-    // Verificar quando conta mudar
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', checkWallet)
+
+    const ethereum = window.ethereum
+    if (ethereum) {
+      ethereum.on('accountsChanged', checkWallet)
       return () => {
-        window.ethereum?.removeListener('accountsChanged', checkWallet)
+        ethereum.removeListener('accountsChanged', checkWallet)
       }
     }
   }, [checkAccount])

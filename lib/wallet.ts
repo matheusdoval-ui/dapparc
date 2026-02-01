@@ -74,17 +74,20 @@ export function getWalletName(): string {
  * Request account access from wallet (MetaMask or Rabby)
  */
 export async function requestAccountAccess(): Promise<string[]> {
+  if (typeof window === 'undefined') return []
+  if (!window.ethereum) return []
+
   if (!isWalletInstalled()) {
     throw new Error('No compatible wallet found. Please install MetaMask or Rabby Wallet to continue.')
   }
 
   try {
-    // Request account access
-    const accounts = await window.ethereum!.request({
+    const accounts = await window.ethereum.request({
       method: 'eth_requestAccounts',
     })
-    return accounts
+    return Array.isArray(accounts) ? accounts : []
   } catch (error) {
+    console.error('Wallet connect error', error)
     if ((error as any).code === 4001) {
       throw new Error('User rejected the connection request')
     }
@@ -96,16 +99,20 @@ export async function requestAccountAccess(): Promise<string[]> {
  * Get current connected accounts
  */
 export async function getAccounts(): Promise<string[]> {
+  if (typeof window === 'undefined') return []
+  if (!window.ethereum) return []
+
   if (!isWalletInstalled()) {
     throw new Error('No compatible wallet found')
   }
 
   try {
-    const accounts = await window.ethereum!.request({
+    const accounts = await window.ethereum.request({
       method: 'eth_accounts',
     })
-    return accounts
+    return Array.isArray(accounts) ? accounts : []
   } catch (error) {
+    console.error('Wallet getAccounts error', error)
     throw new Error('Failed to get accounts')
   }
 }
@@ -114,16 +121,20 @@ export async function getAccounts(): Promise<string[]> {
  * Get current chain ID
  */
 export async function getChainId(): Promise<number> {
+  if (typeof window === 'undefined') return 0
+  if (!window.ethereum) return 0
+
   if (!isWalletInstalled()) {
     throw new Error('No compatible wallet found')
   }
 
   try {
-    const chainId = await window.ethereum!.request({
+    const chainId = await window.ethereum.request({
       method: 'eth_chainId',
     })
     return parseInt(chainId as string, 16)
   } catch (error) {
+    console.error('Wallet getChainId error', error)
     throw new Error('Failed to get chain ID')
   }
 }
@@ -132,6 +143,9 @@ export async function getChainId(): Promise<number> {
  * Switch to ARC Testnet
  */
 export async function switchToArcTestnet(): Promise<void> {
+  if (typeof window === 'undefined') return
+  if (!window.ethereum) return
+
   if (!isWalletInstalled()) {
     throw new Error('No compatible wallet found')
   }
@@ -139,16 +153,15 @@ export async function switchToArcTestnet(): Promise<void> {
   const walletName = getWalletName()
 
   try {
-    // Try to switch to ARC Testnet
-    await window.ethereum!.request({
+    await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: ARC_NETWORK_CONFIG.chainId }],
     })
   } catch (switchError: any) {
-    // If chain doesn't exist, add it
     if (switchError.code === 4902) {
       try {
-        await window.ethereum!.request({
+        if (!window.ethereum) throw new Error('Wallet not available')
+        await window.ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [ARC_NETWORK_CONFIG],
         })
@@ -183,7 +196,13 @@ export async function ensureArcTestnet(): Promise<void> {
  * Connect wallet and ensure correct network
  */
 export async function connectWallet(): Promise<string> {
-  // Check if any compatible wallet is installed
+  if (typeof window === 'undefined') {
+    throw new Error('Wallet can only be used in the browser')
+  }
+  if (!window.ethereum) {
+    throw new Error('No compatible wallet found. Please install MetaMask or Rabby Wallet.')
+  }
+
   if (!isWalletInstalled()) {
     const walletName = getWalletName()
     throw new Error(`${walletName} is not installed. Please install MetaMask or Rabby Wallet to continue.`)
@@ -211,6 +230,12 @@ export async function connectWallet(): Promise<string> {
  * Function selector for registerQuery(): 0x4d0a2a2a (keccak256("registerQuery()").slice(0, 4))
  */
 export async function registerQueryAsTransaction(contractAddress?: string): Promise<string> {
+  if (typeof window === 'undefined') {
+    throw new Error('Wallet can only be used in the browser')
+  }
+  if (!window.ethereum) {
+    throw new Error('No compatible wallet found')
+  }
   if (!isWalletInstalled()) {
     throw new Error('No compatible wallet found')
   }
@@ -276,9 +301,7 @@ export async function registerQueryAsTransaction(contractAddress?: string): Prom
     // Para contas tradicionais, usar transação normal
     // If contract address is provided, call the contract's registerQuery function
     if (contractAddress && /^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
-      // Function selector for registerQuery() is: keccak256("registerQuery()") = 0x4d0a2a2a...
-      // First 4 bytes: 0x4d0a2a2a
-      const txHash = await window.ethereum!.request({
+      const txHash = await window.ethereum.request({
         method: 'eth_sendTransaction',
         params: [{
           from: address,
@@ -291,8 +314,7 @@ export async function registerQueryAsTransaction(contractAddress?: string): Prom
     }
 
     // Fallback: Create a simple self-transfer transaction (sending 0 ETH to self)
-    // This creates a transaction on-chain that will be counted by getTransactionCount
-    const txHash = await window.ethereum!.request({
+    const txHash = await window.ethereum.request({
       method: 'eth_sendTransaction',
       params: [{
         from: address,
@@ -317,6 +339,12 @@ export async function registerQueryAsTransaction(contractAddress?: string): Prom
  * Function selector for register(): 0x4a39e2d1 (keccak256("register()").slice(0, 4))
  */
 export async function registerForLeaderboard(registryContractAddress: string): Promise<string> {
+  if (typeof window === 'undefined') {
+    throw new Error('Wallet can only be used in the browser')
+  }
+  if (!window.ethereum) {
+    throw new Error('No compatible wallet found')
+  }
   if (!isWalletInstalled()) {
     throw new Error('No compatible wallet found')
   }
@@ -336,9 +364,7 @@ export async function registerForLeaderboard(registryContractAddress: string): P
     // Ensure connected to ARC Testnet
     await ensureArcTestnet()
 
-    // Function selector for register() is: keccak256("register()") = 0x4a39e2d1...
-    // First 4 bytes: 0x4a39e2d1
-    const txHash = await window.ethereum!.request({
+    const txHash = await window.ethereum.request({
       method: 'eth_sendTransaction',
       params: [{
         from: address,
