@@ -45,17 +45,17 @@ export default function Home() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-arc-mesh px-4 py-12 sm:px-6 sm:py-14 text-foreground">
       {/* Navigation */}
-      <nav className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 border-b border-cyan-500/20 bg-black/50 backdrop-blur-xl px-4 py-2.5 sm:px-6 shadow-[0_0_30px_rgba(0,200,255,0.08)] transition-all duration-300">
+      <nav className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between gap-2 border-b border-violet-500/20 bg-black/50 backdrop-blur-xl px-4 py-2.5 sm:px-6 shadow-[0_0_30px_rgba(139,92,246,0.08)] transition-all duration-300">
         <a
           href="/"
-          className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1 text-foreground/90 transition-all duration-300 hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-300"
+          className="flex items-center gap-1.5 rounded-lg border border-transparent px-2 py-1 text-foreground/90 transition-all duration-300 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-violet-300"
           aria-label="ARCtx home"
         >
           <img src="/favicon.svg" alt="" className="h-6 w-6 shrink-0" />
           <span className="text-sm font-bold tracking-tight sm:text-base">ARCtx</span>
         </a>
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-black/40 px-3 py-1.5 backdrop-blur-md">
+          <div className="hidden sm:inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-black/40 px-3 py-1.5 backdrop-blur-md">
             <span className="relative flex h-2 w-2">
               {isTestnetActive ? (
                 <>
@@ -82,7 +82,7 @@ export default function Home() {
                 key={label}
                 href={href}
                 {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                className="flex items-center gap-1 rounded-lg border border-transparent px-2.5 py-1.5 text-sm tracking-wide text-foreground/80 transition-all duration-300 hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-300 hover:shadow-[0_0_16px_rgba(0,200,255,0.2)]"
+                className="flex items-center gap-1 rounded-lg border border-transparent px-2.5 py-1.5 text-sm tracking-wide text-foreground/80 transition-all duration-300 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-violet-300 hover:shadow-[0_0_16px_rgba(139,92,246,0.2)]"
               >
                 <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span>{label}</span>
@@ -106,7 +106,7 @@ export default function Home() {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button
               size="lg"
-              className="min-w-[180px] gap-2 bg-cyan-500 text-black text-base font-semibold transition-all duration-300 hover:bg-cyan-400 hover:shadow-[0_0_24px_rgba(0,200,255,0.4)]"
+              className="min-w-[180px] gap-2 bg-violet-500 text-white text-base font-semibold transition-all duration-300 hover:bg-violet-400 hover:shadow-[0_0_24px_rgba(139,92,246,0.4)]"
               onClick={() => document.getElementById('game')?.scrollIntoView({ behavior: 'smooth' })}
             >
               🎮 PLAY GAME
@@ -114,7 +114,7 @@ export default function Home() {
             <Button
               size="lg"
               variant="outline"
-              className="min-w-[180px] gap-2 border-cyan-500/50 text-base font-semibold transition-all duration-300 hover:bg-cyan-500/10 hover:border-cyan-500/70 hover:shadow-[0_0_20px_rgba(0,200,255,0.2)]"
+              className="min-w-[180px] gap-2 border-violet-500/50 text-base font-semibold transition-all duration-300 hover:bg-violet-500/10 hover:border-violet-500/70 hover:shadow-[0_0_20px_rgba(139,92,246,0.2)]"
               onClick={() => document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' })}
             >
               🏆 VIEW LEADERBOARD
@@ -150,18 +150,18 @@ export default function Home() {
                 href={dapp.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-col overflow-hidden rounded-xl border border-cyan-500/20 bg-black/30 p-4 backdrop-blur-sm transition-all duration-300 hover:border-cyan-500/50 hover:shadow-[0_0_24px_rgba(0,200,255,0.2)]"
+                className="group flex flex-col overflow-hidden rounded-xl border border-violet-500/20 bg-black/30 p-4 backdrop-blur-sm transition-all duration-300 hover:border-violet-500/50 hover:shadow-[0_0_24px_rgba(139,92,246,0.2)]"
               >
                 <div className="mb-2 flex items-center gap-2">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10 transition-all duration-300 group-hover:border-cyan-500/50 group-hover:shadow-[0_0_10px_rgba(0,200,255,0.3)]">
-                    <Globe className="h-3.5 w-3.5 text-cyan-400" />
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-violet-500/30 bg-violet-500/10 transition-all duration-300 group-hover:border-violet-500/50 group-hover:shadow-[0_0_10px_rgba(139,92,246,0.3)]">
+                    <Globe className="h-3.5 w-3.5 text-violet-400" />
                   </div>
                   <span className="truncate text-sm font-semibold tracking-wide text-foreground">{dapp.name}</span>
                 </div>
                 <p className="mb-3 line-clamp-2 flex-1 text-sm leading-snug text-muted-foreground">{dapp.description}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {dapp.tags.slice(0, 2).map((tag) => (
-                    <span key={tag} className="rounded-md px-2 py-0.5 text-xs font-medium uppercase tracking-wider text-cyan-400/90">
+                    <span key={tag} className="rounded-md px-2 py-0.5 text-xs font-medium uppercase tracking-wider text-violet-400/90">
                       {tag}
                     </span>
                   ))}
@@ -173,7 +173,7 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="absolute bottom-0 left-0 right-0 z-20 flex flex-col gap-3 border-t border-cyan-500/20 bg-black/50 backdrop-blur-xl px-6 py-4 sm:px-12 text-muted-foreground shadow-[0_0_30px_rgba(0,200,255,0.06)] transition-all duration-300">
+      <footer className="absolute bottom-0 left-0 right-0 z-20 flex flex-col gap-3 border-t border-violet-500/20 bg-black/50 backdrop-blur-xl px-6 py-4 sm:px-12 text-muted-foreground shadow-[0_0_30px_rgba(139,92,246,0.06)] transition-all duration-300">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm">
           {LEADERBOARD_CONTRACT_ADDRESS && (
             <span>
@@ -182,7 +182,7 @@ export default function Home() {
                 href={`https://testnet.arcscan.app/address/${LEADERBOARD_CONTRACT_ADDRESS}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-cyan-400 transition-colors duration-300 hover:text-cyan-300 hover:underline"
+                className="font-mono text-violet-400 transition-colors duration-300 hover:text-violet-300 hover:underline"
               >
                 {LEADERBOARD_CONTRACT_ADDRESS.slice(0, 6)}...{LEADERBOARD_CONTRACT_ADDRESS.slice(-4)}
               </a>
@@ -192,7 +192,7 @@ export default function Home() {
             href={LEADERBOARD_CONTRACT_ADDRESS ? `https://testnet.arcscan.app/address/${LEADERBOARD_CONTRACT_ADDRESS}` : 'https://testnet.arcscan.app'}
             target="_blank"
             rel="noopener noreferrer"
-            className="transition-colors duration-300 hover:text-cyan-300 hover:underline"
+            className="transition-colors duration-300 hover:text-violet-300 hover:underline"
           >
             Verified on ArcScan
           </a>
@@ -204,7 +204,7 @@ export default function Home() {
             href="https://github.com/matheusdoval-ui"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm transition-all duration-300 hover:text-cyan-300 hover:translate-y-[-1px]"
+            className="flex items-center gap-2 text-sm transition-all duration-300 hover:text-violet-300 hover:translate-y-[-1px]"
             aria-label="GitHub repository"
           >
             <Github className="h-4 w-4" />
@@ -214,7 +214,7 @@ export default function Home() {
             href="https://x.com/matheusdovalx"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm transition-all duration-300 hover:text-cyan-300 hover:translate-y-[-1px]"
+            className="flex items-center gap-2 text-sm transition-all duration-300 hover:text-violet-300 hover:translate-y-[-1px]"
             aria-label="Follow creator on X"
           >
             <Twitter className="h-4 w-4" />

@@ -78,8 +78,8 @@
 @theme inline {
   --font-sans: 'Inter', 'Inter Fallback', system-ui, sans-serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
-  --color-arc-accent: #00AEEF;
-  --color-arc-glow: #00AEEF40;
+  --color-arc-accent: #8B5CF6;
+  --color-arc-glow: #8B5CF640;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -133,8 +133,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(0, 255, 255, 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 255, 255, 0.08) 1px, transparent 1px);
+    linear-gradient(rgba(139, 92, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.08) 1px, transparent 1px);
     background-size: 40px 40px;
     pointer-events: none;
     z-index: -1;
@@ -149,12 +149,12 @@
 .bg-arc-mesh {
   background-color: oklch(0.97 0.01 240);
   background-image:
-    linear-gradient(rgba(0, 174, 239, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 174, 239, 0.06) 1px, transparent 1px),
-    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(0, 174, 239, 0.12), transparent 50%),
-    radial-gradient(ellipse 60% 50% at 100% 40%, rgba(0, 174, 239, 0.06), transparent 50%),
-    radial-gradient(ellipse 60% 50% at 0% 40%, rgba(0, 174, 239, 0.06), transparent 50%),
-    radial-gradient(ellipse 80% 40% at 50% 110%, rgba(0, 174, 239, 0.08), transparent 50%);
+    linear-gradient(rgba(139, 92, 246, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.06) 1px, transparent 1px),
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(139, 92, 246, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 100% 40%, rgba(139, 92, 246, 0.06), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 0% 40%, rgba(139, 92, 246, 0.06), transparent 50%),
+    radial-gradient(ellipse 80% 40% at 50% 110%, rgba(139, 92, 246, 0.08), transparent 50%);
   background-size: 48px 48px, 48px 48px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
 }
 
@@ -162,36 +162,36 @@
 .dark .bg-arc-mesh {
   background-color: #000;
   background-image:
-    linear-gradient(rgba(0, 174, 239, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 174, 239, 0.04) 1px, transparent 1px),
-    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(0, 174, 239, 0.2), transparent 50%),
-    radial-gradient(ellipse 60% 50% at 100% 40%, rgba(0, 174, 239, 0.08), transparent 50%),
-    radial-gradient(ellipse 60% 50% at 0% 40%, rgba(0, 174, 239, 0.08), transparent 50%),
-    radial-gradient(ellipse 80% 40% at 50% 110%, rgba(0, 174, 239, 0.1), transparent 50%);
+    linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.04) 1px, transparent 1px),
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(139, 92, 246, 0.2), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 100% 40%, rgba(139, 92, 246, 0.08), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 0% 40%, rgba(139, 92, 246, 0.08), transparent 50%),
+    radial-gradient(ellipse 80% 40% at 50% 110%, rgba(139, 92, 246, 0.1), transparent 50%);
 }
 
 /* Título arcade — synthwave */
 .title-arcade {
   font-family: var(--font-orbitron), 'Orbitron', sans-serif;
   letter-spacing: 2px;
-  text-shadow: 0 0 10px #00f7ff, 0 0 20px #00f7ff;
+  text-shadow: 0 0 10px #a78bfa, 0 0 20px #8b5cf6;
 }
 
 /* Card glow — arcade synth */
 .card-glow-cyan {
-  box-shadow: 0 0 25px rgba(0, 200, 255, 0.25);
-  border: 1px solid rgba(0, 200, 255, 0.3);
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(139, 92, 246, 0.3);
 }
 
 /* Neon glow utilities */
 .text-glow-cyan {
-  text-shadow: 0 0 20px rgba(0, 174, 239, 0.5), 0 0 40px rgba(0, 174, 239, 0.3);
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.3);
 }
 .border-glow-cyan {
-  box-shadow: 0 0 0 1px rgba(0, 174, 239, 0.3), 0 0 20px rgba(0, 174, 239, 0.15);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.3), 0 0 20px rgba(139, 92, 246, 0.15);
 }
 .hover\:border-glow-cyan:hover {
-  box-shadow: 0 0 0 1px rgba(0, 174, 239, 0.5), 0 0 24px rgba(0, 174, 239, 0.25);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.5), 0 0 24px rgba(139, 92, 246, 0.25);
 }
 
 /* Wallet card stable sizing — wrapper só envolve o card, sem espaço extra */
