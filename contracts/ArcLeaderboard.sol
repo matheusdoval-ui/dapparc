@@ -35,19 +35,11 @@ contract ArcLeaderboard is Ownable {
     }
 
     function addPoints(address user, uint256 amount) external onlyOwner {
-<<<<<<< HEAD
-        if (!registered[user]) {
-            registered[user] = true;
-            users.push(user);
-            emit UserRegistered(user);
-        }
-=======
         // 1) Permission: onlyOwner (modifier)
         // 2) Inputs: address, amount, state
         if (user == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
         if (!registered[user]) revert UserNotRegistered();
->>>>>>> 3813cb1 (deploy)
 
         score[user] += amount;
         emit ScoreUpdated(user, score[user]);

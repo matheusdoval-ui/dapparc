@@ -42,28 +42,20 @@ export default function LeaderboardPage() {
     }
   }, [])
 
-<<<<<<< HEAD
   useEffect(() => {
     fetchData()
     const interval = setInterval(fetchData, REFRESH_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [fetchData])
 
-  const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`
-=======
   // Refetch when a user is saved on-chain (e.g. from home after connecting wallet)
   useEffect(() => {
-    const onLeaderboardUpdated = () => {
-      fetchLeaderboard()
-    }
+    const onLeaderboardUpdated = () => fetchData()
     window.addEventListener("leaderboard-updated", onLeaderboardUpdated)
     return () => window.removeEventListener("leaderboard-updated", onLeaderboardUpdated)
-  }, [])
+  }, [fetchData])
 
-  const shortenAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
-  }
->>>>>>> 3813cb1 (deploy)
+  const shortenAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Crown className="h-5 w-5" />
