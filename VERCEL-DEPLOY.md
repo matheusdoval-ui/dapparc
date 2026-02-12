@@ -16,9 +16,15 @@ Este guia detalha como fazer o deploy do ARCtx no Vercel e conectar ao domínio 
 3. **Framework**: Next.js (detectado automaticamente). Build: `npm run build`.
 4. **Variáveis de ambiente**: em Settings → Environment Variables, adicione:
    - `ARC_RPC_URL` = `https://rpc.testnet.arc.network`
+<<<<<<< HEAD
    - `NEXT_PUBLIC_ARC_RPC` = `https://rpc.testnet.arc.network`
    - `NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS` = `0x7461Fc5EAf38693e98B06B042e37b4adF1453AbD`
    - `REGISTRY_CONTRACT_ADDRESS` = `0x7461Fc5EAf38693e98B06B042e37b4adF1453AbD`
+=======
+   - `NEXT_PUBLIC_LEADERBOARD_CONTRACT_ADDRESS` = endereço do contrato Leaderboard do jogo (ex: `0xdc135327f5f01ABCd2bbE1A0386A1f0B6024DA72`)
+   - `NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS` = `0xD6a210015e8F988646aCaf07D68468FC88bA3D15`
+   - `REGISTRY_CONTRACT_ADDRESS` = `0xD6a210015e8F988646aCaf07D68468FC88bA3D15`
+>>>>>>> 3813cb1 (deploy)
 5. **Deploy**: clique em **Deploy**. Após o build, a URL ficará em `https://seu-projeto.vercel.app`.
 
 Para atualizações: basta dar `git push origin main`; o Vercel faz o deploy automático.
@@ -73,9 +79,15 @@ Adicione as seguintes variáveis de ambiente no Vercel (Settings → Environment
 | Nome | Valor | Ambientes |
 |------|--------|-----------|
 | `ARC_RPC_URL` | `https://rpc.testnet.arc.network` | Production, Preview, Development |
+<<<<<<< HEAD
 | `NEXT_PUBLIC_ARC_RPC` | `https://rpc.testnet.arc.network` | Production, Preview, Development |
 | `NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS` | `0x7461Fc5EAf38693e98B06B042e37b4adF1453AbD` | Production, Preview, Development |
 | `REGISTRY_CONTRACT_ADDRESS` | `0x7461Fc5EAf38693e98B06B042e37b4adF1453AbD` | Production, Preview, Development |
+=======
+| `NEXT_PUBLIC_LEADERBOARD_CONTRACT_ADDRESS` | Endereço do contrato Leaderboard (jogo) | Production, Preview, Development |
+| `NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS` | `0xD6a210015e8F988646aCaf07D68468FC88bA3D15` | Production, Preview, Development |
+| `REGISTRY_CONTRACT_ADDRESS` | `0xD6a210015e8F988646aCaf07D68468FC88bA3D15` | Production, Preview, Development |
+>>>>>>> 3813cb1 (deploy)
 
 - **ARC_RPC_URL**: RPC da Arc Testnet (já tem valor padrão no código; configurar garante consistência).
 - **NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS**: endereço do contrato ArcLeaderboard (cliente).

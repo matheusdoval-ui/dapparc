@@ -6,6 +6,15 @@ pragma solidity ^0.8.20;
  * @dev ERC20 token for Arc Testnet with initial supply
  */
 contract MeuTokenARC {
+    // ---------- Custom errors (full defensive validation, no silent reverts) ----------
+    error ZeroAddress();
+    error ZeroAmount();
+    error TransferToZeroAddress();
+    error ApproveToZeroAddress();
+    error TransferFromZeroAddress();
+    error InsufficientBalance(uint256 balance, uint256 required);
+    error InsufficientAllowance(uint256 allowance, uint256 required);
+
     string public name = "Meu Token ARC";
     string public symbol = "MTARC";
     uint8 public decimals = 18;
@@ -24,7 +33,12 @@ contract MeuTokenARC {
     }
 
     function transfer(address to, uint256 amount) external returns (bool) {
-        require(balanceOf[msg.sender] >= amount, "Insufficient balance");
+        // 1) Inputs: address, amount, then balance
+        if (to == address(0)) revert TransferToZeroAddress();
+        if (amount == 0) revert ZeroAmount();
+        uint256 fromBalance = balanceOf[msg.sender];
+        if (fromBalance < amount) revert InsufficientBalance(fromBalance, amount);
+
         balanceOf[msg.sender] -= amount;
         balanceOf[to] += amount;
         emit Transfer(msg.sender, to, amount);
@@ -32,14 +46,23 @@ contract MeuTokenARC {
     }
 
     function approve(address spender, uint256 amount) external returns (bool) {
+        if (spender == address(0)) revert ApproveToZeroAddress();
+
         allowance[msg.sender][spender] = amount;
         emit Approval(msg.sender, spender, amount);
         return true;
     }
 
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
-        require(balanceOf[from] >= amount, "Insufficient balance");
-        require(allowance[from][msg.sender] >= amount, "Insufficient allowance");
+        // 1) Inputs: addresses, amount; 2) ERC20: balance then allowance
+        if (from == address(0)) revert TransferFromZeroAddress();
+        if (to == address(0)) revert TransferToZeroAddress();
+        if (amount == 0) revert ZeroAmount();
+        uint256 fromBalance = balanceOf[from];
+        uint256 currentAllowance = allowance[from][msg.sender];
+        if (fromBalance < amount) revert InsufficientBalance(fromBalance, amount);
+        if (currentAllowance < amount) revert InsufficientAllowance(currentAllowance, amount);
+
         allowance[from][msg.sender] -= amount;
         balanceOf[from] -= amount;
         balanceOf[to] += amount;

@@ -283,7 +283,7 @@ export default function DashboardPage() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="py-10 text-center text-sm text-muted-foreground">Dados não disponíveis</p>
+                <p className="py-10 text-center text-sm text-muted-foreground">Data not available</p>
               )}
             </section>
 
@@ -352,7 +352,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : (
-                <p className="py-10 text-center text-sm text-muted-foreground">Dados não disponíveis</p>
+                <p className="py-10 text-center text-sm text-muted-foreground">Data not available</p>
               )}
             </section>
 
@@ -412,7 +412,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : (
-                <p className="py-10 text-center text-sm text-muted-foreground">Dados não disponíveis</p>
+                <p className="py-10 text-center text-sm text-muted-foreground">Data not available</p>
               )}
             </section>
 

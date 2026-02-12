@@ -3,117 +3,34 @@ pragma solidity ^0.8.20;
 
 /**
  * @title Leaderboard
- * @dev Simple contract to register users in the leaderboard
- * Each user can call mint() to register themselves
- * Emits events for frontend filtering
+ * @dev Minimal contract for game scores. Emits ScoreSubmitted so the indexer can persist leaderboard.
  */
 contract Leaderboard {
-    // Owner address
-    address public owner;
-    
-    // Array of registered addresses
-    address[] public registeredUsers;
-    
-    // Mapping to check if user is registered
-    mapping(address => bool) public isRegistered;
-    
-    // Mapping to store registration timestamp
-    mapping(address => uint256) public registrationTimestamp;
-    
-    // Mapping to store registration index in array
-    mapping(address => uint256) public registrationIndex;
-    
-    // Total registrations
-    uint256 public totalRegistrations;
-    
-    // Event emitted when a new user registers (simples, como solicitado)
-    event NewEntry(address indexed user);
-    
-    // Modifier to restrict functions to owner
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this function");
-        _;
+    event ScoreSubmitted(address indexed player, uint256 score);
+
+    mapping(address => uint256) public bestScore;
+    address[] private _players;
+
+    function getAllPlayers() external view returns (address[] memory) {
+        return _players;
     }
-    
-    /**
-     * @dev Constructor
-     * @param _owner Owner address
-     */
-    constructor(address _owner) {
-        require(_owner != address(0), "Invalid owner address");
-        owner = _owner;
+
+    function scores(address addr) external view returns (uint256) {
+        return bestScore[addr];
     }
-    
-    /**
-     * @dev Register user in leaderboard (mint function)
-     * Can be called by any address to register themselves
-     * Emits NewEntry event for frontend filtering
-     */
-    function mint() external {
-        require(!isRegistered[msg.sender], "User already registered");
-        
-        // Register user
-        isRegistered[msg.sender] = true;
-        registrationTimestamp[msg.sender] = block.timestamp;
-        registrationIndex[msg.sender] = registeredUsers.length;
-        registeredUsers.push(msg.sender);
-        totalRegistrations++;
-        
-        // Emit simple NewEntry event (as requested)
-        emit NewEntry(msg.sender);
-    }
-    
-    /**
-     * @dev Get all registered users
-     * @return Array of registered addresses
-     */
-    function getAllRegisteredUsers() external view returns (address[] memory) {
-        return registeredUsers;
-    }
-    
-    /**
-     * @dev Get registered user at index
-     * @param index Index in the array
-     * @return User address at index
-     */
-    function getRegisteredUser(uint256 index) external view returns (address) {
-        require(index < registeredUsers.length, "Index out of bounds");
-        return registeredUsers[index];
-    }
-    
-    /**
-     * @dev Get registration info for a user
-     * @param user Address to check
-     * @return registered Whether user is registered
-     * @return timestamp Registration timestamp (0 if not registered)
-     * @return index Registration index in array (0 if not registered)
-     */
-    function getRegistrationInfo(address user) external view returns (
-        bool registered,
-        uint256 timestamp,
-        uint256 index
-    ) {
-        return (
-            isRegistered[user],
-            registrationTimestamp[user],
-            registrationIndex[user]
-        );
-    }
-    
-    /**
-     * @dev Get total number of registered users
-     * @return Total count
-     */
-    function getTotalUsers() external view returns (uint256) {
-        return registeredUsers.length;
-    }
-    
-    /**
-     * @dev Transfer ownership (owner only)
-     * @param newOwner New owner address
-     */
-    function transferOwnership(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "Invalid new owner address");
-        owner = newOwner;
+
+    function submitScore(uint256 score) external {
+        if (score > bestScore[msg.sender]) {
+            bestScore[msg.sender] = score;
+        }
+        bool found;
+        for (uint256 i = 0; i < _players.length; i++) {
+            if (_players[i] == msg.sender) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) _players.push(msg.sender);
+        emit ScoreSubmitted(msg.sender, score);
     }
 }

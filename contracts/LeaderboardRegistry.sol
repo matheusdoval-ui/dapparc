@@ -8,48 +8,54 @@ pragma solidity ^0.8.20;
  * Generates events and changes state to prove real usage
  */
 contract LeaderboardRegistry {
+    // ---------- Custom errors (gas-efficient, explicit revert reasons) ----------
+    error NotAuthorized(address caller);
+    error ZeroAddress();
+    error WalletAlreadyRegistered();
+
     // Owner address
     address public owner;
-    
+
     // Track registered addresses: address => is registered
     mapping(address => bool) public isRegistered;
-    
+
     // Track total registrations
     uint256 public totalRegistrations;
-    
+
     // Track registration timestamp
     mapping(address => uint256) public registrationTimestamp;
-    
+
     // Event emitted when a wallet registers
     event WalletRegistered(
         address indexed wallet,
         uint256 timestamp,
         uint256 blockNumber
     );
-    
-    // Modifier to restrict functions to owner
+
+    // Modifier to restrict functions to owner (explicit revert for early failure)
     modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this function");
+        if (msg.sender != owner) revert NotAuthorized(msg.sender);
         _;
     }
-    
+
     /**
      * @dev Constructor
      * @param _owner Owner address
      */
     constructor(address _owner) {
-        require(_owner != address(0), "Invalid owner address");
+        if (_owner == address(0)) revert ZeroAddress();
         owner = _owner;
     }
-    
+
     /**
      * @dev Register wallet for leaderboard
      * Simple on-chain action that generates event and changes state
      * No payment required, just gas for transaction
      */
     function register() external {
-        require(!isRegistered[msg.sender], "Wallet already registered");
-        
+        // 1) State: not already registered
+        if (isRegistered[msg.sender]) revert WalletAlreadyRegistered();
+
         // Change state
         isRegistered[msg.sender] = true;
         registrationTimestamp[msg.sender] = block.timestamp;
@@ -83,7 +89,8 @@ contract LeaderboardRegistry {
      * @param newOwner New owner address
      */
     function transferOwnership(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "Invalid new owner address");
+        // 1) Permission: onlyOwner (modifier)
+        if (newOwner == address(0)) revert ZeroAddress();
         owner = newOwner;
     }
 }

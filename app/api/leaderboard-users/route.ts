@@ -1,17 +1,20 @@
 /**
  * @file route.ts
  * @description API endpoint para listar usuários registrados no contrato Leaderboard
- * Filtra eventos NewEntry do contrato para listar usuários
+ * Suporta ArcLeaderboard (getUsersCount/getUserAt/getScore) e Leaderboard (getAllRegisteredUsers)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { JsonRpcProvider, Contract } from 'ethers'
-import { LEADERBOARD_ABI } from '@/lib/abis/leaderboard'
+import { LEADERBOARD_FULL_ABI } from '@/lib/abis/leaderboard-full'
+import { ARC_LEADERBOARD_ABI } from '@/lib/abis/arc-leaderboard'
 
 // Arc Testnet Configuration
 const ARC_RPC_URL = process.env.ARC_RPC_URL || 'https://rpc.testnet.arc.network'
 
-// Registry Contract Address
+const ARC_LEADERBOARD_ADDRESS = '0x7461Fc5EAf38693e98B06B042e37b4adF1453AbD'
+
+// Registry Contract Address (legacy / alternate)
 const REGISTRY_CONTRACT_ADDRESS = (
   process.env.REGISTRY_CONTRACT_ADDRESS ||
   process.env.NEXT_PUBLIC_REGISTRY_CONTRACT_ADDRESS ||
@@ -23,30 +26,56 @@ interface LeaderboardUser {
   timestamp: number
   blockNumber: number
   index: number
+  score?: number
 }
 
 /**
  * GET /api/leaderboard-users
- * Lista todos os usuários registrados no contrato Leaderboard
- * Filtra eventos NewEntry do contrato
+ * Lista usuários do ArcLeaderboard (getUsersCount/getUserAt/getScore) ou do Leaderboard (getAllRegisteredUsers)
  */
 export async function GET(request: NextRequest) {
   try {
-    if (!REGISTRY_CONTRACT_ADDRESS) {
-      return NextResponse.json(
-        { 
-          error: 'Registry contract address not configured',
-          users: [],
-          total: 0
-        },
-        { status: 200 } // Return empty list instead of error
-      )
+    const provider = new JsonRpcProvider(ARC_RPC_URL)
+    const users: LeaderboardUser[] = []
+
+    // 1) Try ArcLeaderboard (addPoints contract): getUsersCount, getUserAt, getScore
+    try {
+      const arcContract = new Contract(ARC_LEADERBOARD_ADDRESS, ARC_LEADERBOARD_ABI, provider)
+      const count = Number(await arcContract.getUsersCount())
+      for (let i = 0; i < count; i++) {
+        const address = await arcContract.getUserAt(i)
+        const score = await arcContract.getScore(address)
+        users.push({
+          address: String(address).toLowerCase(),
+          timestamp: Date.now(), // ArcLeaderboard doesn't expose timestamp
+          blockNumber: 0,
+          index: i,
+          score: Number(score),
+        })
+      }
+      if (users.length > 0) {
+        return NextResponse.json({
+          success: true,
+          users,
+          total: users.length,
+          contractAddress: ARC_LEADERBOARD_ADDRESS,
+        })
+      }
+    } catch (arcError) {
+      console.warn('ArcLeaderboard read failed (may be empty or not deployed):', arcError)
     }
 
-    const provider = new JsonRpcProvider(ARC_RPC_URL)
-    const contract = new Contract(REGISTRY_CONTRACT_ADDRESS, LEADERBOARD_ABI, provider)
+    // 2) Fallback: Registry / Leaderboard contract (getAllRegisteredUsers)
+    if (!REGISTRY_CONTRACT_ADDRESS) {
+      return NextResponse.json({
+        success: true,
+        users,
+        total: users.length,
+        contractAddress: ARC_LEADERBOARD_ADDRESS,
+      })
+    }
 
-    // Get total users
+    const contract = new Contract(REGISTRY_CONTRACT_ADDRESS, LEADERBOARD_FULL_ABI, provider)
     let totalUsers = 0
     try {
       totalUsers = Number(await contract.getTotalUsers())
@@ -54,21 +83,16 @@ export async function GET(request: NextRequest) {
       console.warn('Could not get total users:', error)
     }
 
-    // Get all registered users from array
-    const users: LeaderboardUser[] = []
-    
     try {
-      // Method 1: Get all users from array (if contract supports it)
       const allUsers = await contract.getAllRegisteredUsers()
-      
       for (let i = 0; i < allUsers.length; i++) {
         const address = allUsers[i]
         try {
           const info = await contract.getRegistrationInfo(address)
           users.push({
             address: address.toLowerCase(),
-            timestamp: Number(info.timestamp) * 1000, // Convert to milliseconds
-            blockNumber: 0, // Not available from getRegistrationInfo
+            timestamp: Number(info.timestamp) * 1000,
+            blockNumber: 0,
             index: Number(info.index),
           })
         } catch (error) {
@@ -77,20 +101,14 @@ export async function GET(request: NextRequest) {
       }
     } catch (error) {
       console.warn('Could not get all users from array, trying events:', error)
-      
-      // Method 2: Filter events (fallback)
       try {
         const currentBlock = await provider.getBlockNumber()
-        const fromBlock = Math.max(0, currentBlock - 10000) // Last ~10k blocks
-        
-        // Filter NewEntry events (simples: NewEntry(address user))
+        const fromBlock = Math.max(0, currentBlock - 10000)
         const filter = contract.filters.NewEntry()
         const events = await contract.queryFilter(filter, fromBlock, 'latest')
-        
         for (const event of events) {
           if (event.args && event.args[0]) {
             const userAddress = event.args[0].toLowerCase()
-            // Check if already added
             if (!users.find(u => u.address === userAddress)) {
               const block = event.blockNumber ? await provider.getBlock(event.blockNumber) : null
               users.push({
@@ -102,25 +120,15 @@ export async function GET(request: NextRequest) {
             }
           }
         }
-        
-        // Sort by blockNumber (oldest first) or index
-        users.sort((a, b) => {
-          if (a.blockNumber && b.blockNumber) {
-            return a.blockNumber - b.blockNumber
-          }
-          return a.index - b.index
-        })
+        users.sort((a, b) => (a.blockNumber && b.blockNumber ? a.blockNumber - b.blockNumber : a.index - b.index))
       } catch (eventError) {
         console.error('Could not filter events:', eventError)
       }
     }
 
-    // Sort by timestamp (newest first) or index
     users.sort((a, b) => {
-      if (a.timestamp && b.timestamp) {
-        return b.timestamp - a.timestamp // Newest first
-      }
-      return a.index - b.index // Fallback to index
+      if (a.timestamp && b.timestamp) return b.timestamp - a.timestamp
+      return a.index - b.index
     })
 
     return NextResponse.json({

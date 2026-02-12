@@ -22,33 +22,38 @@ const OWNER_ADDRESS = '0xc8d7F8ffB0c98f6157E4bF684bE7756f2CddeBF2'
 // Private Key from .env.local ou variável de ambiente
 const PRIVATE_KEY = process.env.PRIVATE_KEY || '0x231c6f6e09937af4ffa4a47cec3bc10c3210ad4486b8e98131c0f2aeacc61d8c'
 
-// Contract source code (inline para simplificar)
+// Contract source code (inline para simplificar; usa custom errors como contracts/Leaderboard.sol)
 const CONTRACT_SOURCE = `
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 contract Leaderboard {
+    error NotAuthorized(address caller);
+    error ZeroAddress();
+    error UserAlreadyRegistered();
+    error InvalidId(uint256 id);
+
     address public owner;
     address[] public registeredUsers;
     mapping(address => bool) public isRegistered;
     mapping(address => uint256) public registrationTimestamp;
     mapping(address => uint256) public registrationIndex;
     uint256 public totalRegistrations;
-    
+
     event NewEntry(address indexed user);
-    
+
     modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this function");
+        if (msg.sender != owner) revert NotAuthorized(msg.sender);
         _;
     }
-    
+
     constructor(address _owner) {
-        require(_owner != address(0), "Invalid owner address");
+        if (_owner == address(0)) revert ZeroAddress();
         owner = _owner;
     }
-    
+
     function mint() external {
-        require(!isRegistered[msg.sender], "User already registered");
+        if (isRegistered[msg.sender]) revert UserAlreadyRegistered();
         isRegistered[msg.sender] = true;
         registrationTimestamp[msg.sender] = block.timestamp;
         registrationIndex[msg.sender] = registeredUsers.length;
@@ -56,11 +61,16 @@ contract Leaderboard {
         totalRegistrations++;
         emit NewEntry(msg.sender);
     }
-    
+
     function getAllRegisteredUsers() external view returns (address[] memory) {
         return registeredUsers;
     }
-    
+
+    function getRegisteredUser(uint256 index) external view returns (address) {
+        if (index >= registeredUsers.length) revert InvalidId(index);
+        return registeredUsers[index];
+    }
+
     function getRegistrationInfo(address user) external view returns (
         bool registered,
         uint256 timestamp,
@@ -72,13 +82,13 @@ contract Leaderboard {
             registrationIndex[user]
         );
     }
-    
+
     function getTotalUsers() external view returns (uint256) {
         return registeredUsers.length;
     }
-    
+
     function transferOwnership(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "Invalid new owner address");
+        if (newOwner == address(0)) revert ZeroAddress();
         owner = newOwner;
     }
 }

@@ -42,7 +42,10 @@ contract ArcProofOfActivity {
     bytes32 public constant CONTEXT_WALLET_CONNECTED = keccak256("wallet_connected");
     bytes32 public constant CONTEXT_VIEW_TRANSACTIONS = keccak256("view_transactions");
     bytes32 public constant CONTEXT_USED_DAPP = keccak256("used_dapp");
-    
+
+    // ---------- Custom errors (gas-efficient, explicit revert reasons) ----------
+    error TooSoonToProveActivity(uint256 earliestBlockAt);
+
     // ============ Events ============
     
     /**
@@ -88,15 +91,15 @@ contract ArcProofOfActivity {
      * - keccak256("used_dapp")
      */
     function proveActivity(bytes32 context) public {
+        // 1) State: anti-spam (earliest block at which proof is allowed)
         address user = msg.sender;
         uint256 currentBlock = block.number;
         uint64 lastBlock = lastActivityBlock[user];
-        
-        // Anti-spam: verificar se passou tempo suficiente desde última prova
-        require(
-            lastBlock == 0 || currentBlock >= lastBlock + MIN_BLOCKS_BETWEEN_PROOFS,
-            "ArcPoA: Too soon to prove activity again"
-        );
+        uint256 earliestBlock = lastBlock + MIN_BLOCKS_BETWEEN_PROOFS;
+
+        if (lastBlock != 0 && currentBlock < earliestBlock) {
+            revert TooSoonToProveActivity(earliestBlock);
+        }
         
         // Verificar se é primeira interação deste endereço
         bool isFirstActivity = (lastBlock == 0);

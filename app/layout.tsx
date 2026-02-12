@@ -1,10 +1,13 @@
 import React from "react"
 import type { Metadata } from 'next'
+import { Orbitron } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { RegistrationProvider } from '@/contexts/registration-context'
 import { WalletErrorHandler } from '@/components/wallet-error-handler'
 import './globals.css'
+
+const orbitron = Orbitron({ subsets: ['latin'], variable: '--font-orbitron' })
 
 export const metadata: Metadata = {
   title: 'arcTX Interaction',
@@ -23,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={orbitron.variable}>
       <body
         className="font-sans antialiased"
         style={{ fontFamily: 'ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}

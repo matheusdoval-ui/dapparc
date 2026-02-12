@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { ethers } from "ethers"
 import { Wallet, Activity, Copy, Check, ExternalLink, Zap, Shield, Globe, AlertCircle, Coins, RefreshCw, Clock, TrendingUp, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +12,8 @@ import { useRegistration } from "@/contexts/registration-context"
 import { isTargetAddressConnected, checkLeaderboardRegistration } from "@/lib/leaderboard-registration"
 import { useUserOperation } from "@/hooks/useUserOperation"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { TOKENS } from "@/lib/tokens"
+import { getTokenBalance } from "@/lib/getTokenBalance"
 
 interface WalletData {
   address: string
@@ -50,7 +53,17 @@ export function WalletCard() {
   const [isRegistered, setIsRegistered] = useState<boolean | null>(null)
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
-
+  const [saveScoreStatus, setSaveScoreStatus] = useState<'idle' | 'saving' | 'sent' | 'saved' | 'error'>('idle')
+  const [saveScoreError, setSaveScoreError] = useState<string | null>(null)
+  const leaderboardSavedThisSessionRef = useRef(false)
+  const [faucetLoading, setFaucetLoading] = useState<'USDC' | 'EUR' | null>(null)
+  const [faucetError, setFaucetError] = useState<string | null>(null)
+  const [faucetSuccess, setFaucetSuccess] = useState<string | null>(null)
+  const [faucetNotConfigured, setFaucetNotConfigured] = useState(false)
+  const [faucetHistory, setFaucetHistory] = useState<Array<{ address: string; token: string; amount: string; txHash: string; timestamp: number }>>([])
+  const [faucetHistoryLoading, setFaucetHistoryLoading] = useState(false)
+  const [usdcBalance, setUsdcBalance] = useState<number | null>(null)
+  const [eurBalance, setEurBalance] = useState<number | null>(null)
   // Hooks para Account Abstraction
   const { isRegistered: contextIsRegistered, checkRegistration, registerViaUserOperation } = useRegistration()
   const { isSmartAccount, checkAccount } = useUserOperation()
@@ -61,6 +74,22 @@ export function WalletCard() {
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
+
+  // Faucet: defined early so useEffect/handlers can reference without TDZ
+  const fetchFaucetHistory = useCallback(async () => {
+    setFaucetHistoryLoading(true)
+    try {
+      const res = await fetch('/api/faucet/history', { cache: 'no-store' })
+      const data = await res.json()
+      if (data.success && Array.isArray(data.claims)) {
+        setFaucetHistory(data.claims)
+      }
+    } catch {
+      setFaucetHistory([])
+    } finally {
+      setFaucetHistoryLoading(false)
+    }
+  }, [])
 
   // Validate address in real-time
   const validateAddress = useCallback((address: string) => {
@@ -334,6 +363,46 @@ export function WalletCard() {
       setIsConnected(true)
       setIsConnecting(false)
 
+      // Backend relayer: POST /api/leaderboard (owner writes addPoints on-chain) — once per session
+      if (!leaderboardSavedThisSessionRef.current) {
+        setSaveScoreStatus('saving')
+        setSaveScoreError(null)
+        fetch('/api/leaderboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userAddress: address }),
+        })
+          .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+          .then(({ ok, data }) => {
+            if (ok && data.success) {
+              setSaveScoreStatus('saved')
+              leaderboardSavedThisSessionRef.current = true
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('leaderboard-updated'))
+              }
+            } else {
+              const err = data?.error ?? data?.message ?? ''
+              const isNotConfigured =
+                err === 'LEADERBOARD_NOT_CONFIGURED' ||
+                String(err).toLowerCase().includes('server not configured for leaderboard')
+              if (isNotConfigured) {
+                setSaveScoreStatus('idle')
+                setSaveScoreError(null)
+                leaderboardSavedThisSessionRef.current = true
+              } else {
+                setSaveScoreStatus('error')
+                setSaveScoreError(data?.message ?? data?.error ?? 'Failed to save to leaderboard')
+              }
+            }
+          })
+          .catch((err) => {
+            setSaveScoreStatus('error')
+            const msg = err instanceof Error ? err.message : String(err)
+            setSaveScoreError(msg)
+            console.error('[WalletCard] leaderboard API error:', err)
+          })
+      }
+
       // Fetch wallet statistics (wallet is connected, so pass isWalletConnected=true)
       console.log('📊 Fetching wallet statistics...')
       await fetchWalletStats(address, true, true) // registerTransaction=true, isWalletConnected=true
@@ -493,6 +562,37 @@ export function WalletCard() {
     }
   }, [])
 
+  // Fetch USDC and EUR token balances when wallet address is available
+  useEffect(() => {
+    const address = walletData?.address
+    if (!address) {
+      setUsdcBalance(null)
+      setEurBalance(null)
+      return
+    }
+    const rpc = process.env.NEXT_PUBLIC_ARC_RPC || "https://rpc.testnet.arc.network"
+    const provider = new ethers.JsonRpcProvider(rpc)
+    let cancelled = false
+    Promise.all([
+      getTokenBalance(TOKENS.USDC.address, address, provider, TOKENS.USDC.decimals),
+      getTokenBalance(TOKENS.EUR.address, address, provider, TOKENS.EUR.decimals),
+    ])
+      .then(([usdc, eur]) => {
+        if (!cancelled) {
+          setUsdcBalance(usdc)
+          setEurBalance(eur)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setUsdcBalance(null)
+          setEurBalance(null)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [walletData?.address])
 
   const handleDisconnect = () => {
     setIsConnected(false)
@@ -504,6 +604,16 @@ export function WalletCard() {
     setChartData([])
     setWalletRank(null)
     setIsRegistered(null)
+    setSaveScoreStatus('idle')
+    setSaveScoreError(null)
+    leaderboardSavedThisSessionRef.current = false
+    setFaucetLoading(null)
+    setFaucetError(null)
+    setFaucetSuccess(null)
+    setUsdcBalance(null)
+    setEurBalance(null)
+    setFaucetNotConfigured(false)
+    setFaucetHistory([])
   }
 
   const copyAddress = async () => {
@@ -513,6 +623,62 @@ export function WalletCard() {
       setTimeout(() => setCopied(false), 2000)
     }
   }
+
+  const requestFaucet = useCallback(
+    async (token: 'USDC' | 'EUR') => {
+      if (!walletData?.address) return
+      setFaucetLoading(token)
+      setFaucetError(null)
+      setFaucetSuccess(null)
+      setFaucetNotConfigured(false)
+      try {
+        const res = await fetch('/api/faucet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address: walletData.address,
+            token: token === 'EUR' ? 'EUR' : 'USDC',
+          }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          setFaucetSuccess(`${token === 'EUR' ? 'EURC' : token} sent! Tx: ${(data.hash as string).slice(0, 10)}...`)
+          setTimeout(() => setFaucetSuccess(null), 5000)
+          if (walletData?.address) fetchWalletStats(walletData.address, false, isConnected)
+          fetchFaucetHistory()
+        } else {
+          if (res.status === 429) {
+            setFaucetError(data.error || 'Rate limit exceeded. Try again later.')
+          } else if (data.error === 'FAUCET_NOT_CONFIGURED' || String(data.message || '').toLowerCase().includes('not configured')) {
+            setFaucetNotConfigured(true)
+          } else {
+            setFaucetError(data.error || data.message || 'Request failed')
+          }
+        }
+      } catch (e) {
+        setFaucetError(e instanceof Error ? e.message : 'Request failed')
+      } finally {
+        setFaucetLoading(null)
+      }
+    },
+    [walletData?.address, isConnected, fetchWalletStats, fetchFaucetHistory]
+  )
+
+  function timeAgo(ts: number): string {
+    const sec = Math.floor((Date.now() - ts) / 1000)
+    if (sec < 60) return `${sec}s ago`
+    const min = Math.floor(sec / 60)
+    if (min < 60) return `${min}m ago`
+    const h = Math.floor(min / 60)
+    if (h < 24) return `${h}h ago`
+    const d = Math.floor(h / 24)
+    return `${d}d ago`
+  }
+
+  // Load faucet history when wallet is available (must be after fetchFaucetHistory is defined)
+  useEffect(() => {
+    if (walletData?.address) fetchFaucetHistory()
+  }, [walletData?.address, fetchFaucetHistory])
 
   return (
     <>
@@ -524,6 +690,7 @@ export function WalletCard() {
           interactions={walletData.interactions}
         />
       )}
+<<<<<<< HEAD
       {/* Card */}
       <div className="w-full max-w-md mx-auto px-4">
         <div className="rounded-xl border bg-card p-6 shadow-sm">
@@ -538,10 +705,25 @@ export function WalletCard() {
           </div>
 
           <div className="scrollbar-hide min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
+=======
+      {/* Card padronizado: mesmo layout conectado / desconectado */}
+      <div className="wallet-card-fixed bg-card border border-border rounded-2xl shadow-xl px-5 pt-5 pb-6 overflow-hidden flex flex-col gap-4 backdrop-blur-sm">
+
+          {/* Header — idêntico em ambos os estados */}
+          <div className="flex flex-col items-center gap-1">
+            <div className="animate-pulse-glow flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-arc-accent to-arc-accent/70 shadow-[0_0_20px_rgba(0,174,239,0.35)]">
+              <Wallet className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-base font-bold tracking-wide text-foreground">ARC Network</h2>
+            <p className="text-[10px] tracking-wide text-muted-foreground opacity-80">Decentralized Infrastructure</p>
+          </div>
+
+          <div className="scrollbar-hide min-h-0 overflow-x-hidden">
+>>>>>>> 3813cb1 (deploy)
           {!walletData ? (
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center gap-4">
               {/* Badges — Secure, Fast, EVM */}
-              <div className="mb-4 flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2">
                 <div className="flex items-center gap-1 rounded-full border border-arc-accent/15 bg-arc-accent/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground transition-all hover:border-arc-accent/30 hover:bg-arc-accent/10 hover:text-arc-accent">
                   <Shield className="h-2.5 w-2.5 text-arc-accent" />
                   Secure
@@ -556,12 +738,12 @@ export function WalletCard() {
                 </div>
               </div>
 
-              <p className="mb-4 text-center text-xs text-muted-foreground">
+              <p className="text-center text-xs text-muted-foreground opacity-80">
                 Connect your wallet or paste an address to view on-chain interactions.
               </p>
 
               {error && (
-                <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-red-500/10 px-4 py-2.5 text-xs text-red-400 animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-destructive/10 px-3 py-2 text-xs text-red-400 animate-in slide-in-from-top-2 w-full">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{error}</span>
                   <button onClick={() => setError(null)} className="ml-auto text-red-400/60 hover:text-red-400 transition-colors" aria-label="Dismiss error">×</button>
@@ -571,7 +753,11 @@ export function WalletCard() {
               <Button
                 onClick={handleConnect}
                 disabled={isConnecting}
+<<<<<<< HEAD
                 className="w-full py-3"
+=======
+                className="h-11 w-full rounded-lg group relative overflow-hidden border border-arc-accent/30 bg-arc-accent py-4 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:border-arc-accent/60 hover:bg-arc-accent/95 hover:shadow-[0_0_36px_rgba(0,174,239,0.5)] disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
+>>>>>>> 3813cb1 (deploy)
               >
                 {isConnecting ? (
                   <span className="flex items-center justify-center gap-2 relative z-10">
@@ -586,50 +772,48 @@ export function WalletCard() {
                 )}
               </Button>
 
+<<<<<<< HEAD
               <p className="mt-3 text-xs text-muted-foreground">
+=======
+              <p className="text-[10px] text-muted-foreground opacity-80">
+>>>>>>> 3813cb1 (deploy)
                 MetaMask or Rabby • ARC Testnet
               </p>
 
-              <div className="mt-4 w-full space-y-2">
-                <div className="flex items-center gap-2 text-center text-[10px] text-muted-foreground/80">
+              <div className="w-full flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-center text-[10px] text-muted-foreground opacity-80">
                   <div className="h-px flex-1 bg-foreground/10" />
-                  <span>Or check address manually</span>
+                  <span>Or check an address</span>
                   <div className="h-px flex-1 bg-foreground/10" />
                 </div>
+<<<<<<< HEAD
                 <p className="text-center text-[10px] text-muted-foreground/60">
                   Paste ARC address (0x...) to check interactions
                 </p>
                 <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
+=======
+                <div className="rounded-xl border border-border bg-muted/30 p-3 transition-all hover:border-border hover:bg-muted/50">
+>>>>>>> 3813cb1 (deploy)
                   <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     <Activity className="h-3 w-3 text-arc-accent" />
                     Check address
                   </div>
-                  <div className="flex w-full flex-col gap-1.5">
-                    <div className="flex w-full gap-2">
-                      <div className="relative flex-1">
-                        <Input
-                          value={manualAddress}
-                          onChange={(e) => { setManualAddress(e.target.value); validateAddress(e.target.value); if (error && e.target.value.trim()) setError(null) }}
-                          onKeyDown={(e) => { if (e.key === 'Enter' && !isCheckingAddress && !isLoadingStats && manualAddress.trim() && addressValidation?.isValid) { e.preventDefault(); handleManualLookup() } }}
-                          onPaste={() => setTimeout(() => validateAddress(manualAddress), 0)}
-                          placeholder="0x1234...abcd"
-                          className={`flex-1 rounded-xl border border-white/20 bg-white/5 px-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 transition-all ${
-                            addressValidation?.isValid ? 'border-green-500/50 focus:border-green-500/80' :
-                            addressValidation?.isValid === false && manualAddress.trim() ? 'border-red-500/50 focus:border-red-500/80' : 'focus:border-arc-accent/50'
-                          } ${isCheckingAddress || isLoadingStats ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          autoComplete="off"
-                          maxLength={66}
-                          disabled={isCheckingAddress || isLoadingStats}
-                        />
-                        {addressValidation && manualAddress.trim() && (
-                          <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${addressValidation.isValid ? 'text-green-400' : 'text-red-400'}`}>
-                            {addressValidation.isValid ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        onClick={(e) => { e.preventDefault(); if (!isCheckingAddress && !isLoadingStats) handleManualLookup() }}
+                  <div className="flex w-full flex-col gap-3">
+                    <div className="relative w-full">
+                      <Input
+                        value={manualAddress}
+                        onChange={(e) => { setManualAddress(e.target.value); validateAddress(e.target.value); if (error && e.target.value.trim()) setError(null) }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !isCheckingAddress && !isLoadingStats && manualAddress.trim() && addressValidation?.isValid) { e.preventDefault(); handleManualLookup() } }}
+                        onPaste={() => setTimeout(() => validateAddress(manualAddress), 0)}
+                        placeholder="0x... paste wallet address"
+                          className={`w-full min-h-[44px] rounded-xl border border-border bg-muted/30 px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-all ${
+                          addressValidation?.isValid ? 'border-green-500/50 focus:border-green-500/80' :
+                          addressValidation?.isValid === false && manualAddress.trim() ? 'border-red-500/50 focus:border-red-500/80' : 'focus:border-arc-accent/50'
+                        } ${isCheckingAddress || isLoadingStats ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        autoComplete="off"
+                        maxLength={66}
                         disabled={isCheckingAddress || isLoadingStats}
+<<<<<<< HEAD
                         size="sm"
                         className={`flex-shrink-0 ${
                           addressValidation?.isValid && !isCheckingAddress && !isLoadingStats
@@ -649,7 +833,36 @@ export function WalletCard() {
                           </span>
                         )}
                       </Button>
+=======
+                      />
+                      {addressValidation && manualAddress.trim() && (
+                        <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${addressValidation.isValid ? 'text-green-400' : 'text-red-400'}`}>
+                          {addressValidation.isValid ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                        </div>
+                      )}
+>>>>>>> 3813cb1 (deploy)
                     </div>
+                    <Button
+                      onClick={(e) => { e.preventDefault(); if (!isCheckingAddress && !isLoadingStats) handleManualLookup() }}
+                      disabled={isCheckingAddress || isLoadingStats}
+                      className={`h-11 w-full rounded-lg px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition-all active:scale-95 ${
+                        addressValidation?.isValid && !isCheckingAddress && !isLoadingStats
+                          ? 'bg-arc-accent hover:bg-arc-accent/90 hover:shadow-[0_0_20px_rgba(0,174,239,0.4)]'
+                          : 'bg-muted/50 hover:bg-muted disabled:opacity-60'
+                      }`}
+                    >
+                      {isCheckingAddress || isLoadingStats ? (
+                        <span className="flex items-center gap-2">
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Checking...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Activity className="h-3 w-3" />
+                          Check
+                        </span>
+                      )}
+                    </Button>
                     {addressValidation && manualAddress.trim() && (
                       <p className={`text-xs ${addressValidation.isValid ? 'text-green-400/80' : 'text-red-400/80'}`}>{addressValidation.message}</p>
                     )}
@@ -658,9 +871,9 @@ export function WalletCard() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center space-y-4">
+            <div className="flex flex-col items-center gap-3 w-full">
               {/* Status — mesmo layout que badges: linha 1 = pill, linha 2 = subtitle */}
-              <div className="mb-1 flex flex-col items-center gap-0.5">
+              <div className="flex flex-col items-center gap-0.5">
                 <div className="flex items-center justify-center gap-2">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
@@ -670,59 +883,130 @@ export function WalletCard() {
                     {isConnected ? 'Connected' : 'Manual lookup'}
                   </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground/60">
-                  {isConnected ? 'ARC Testnet wallet active' : 'Address analyzed manually'}
+                <span className="text-[10px] text-muted-foreground opacity-80">
+                  {isConnected ? 'ARC Testnet wallet active' : 'Address looked up manually'}
                 </span>
               </div>
 
+<<<<<<< HEAD
               {/* Seções padronizadas — mesmo estilo de card (rounded-xl, border, bg, label) */}
               <div className="w-full space-y-3">
                 <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
                   <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+=======
+              {/* On-chain score save feedback */}
+              {isConnected && saveScoreStatus !== 'idle' && (
+                <div
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs w-full animate-in slide-in-from-top-2 ${
+                    saveScoreStatus === 'error'
+                      ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                      : saveScoreStatus === 'saved'
+                        ? 'border-green-500/30 bg-green-500/10 text-green-400'
+                        : 'border-arc-accent/30 bg-arc-accent/10 text-arc-accent'
+                  }`}
+                >
+                  {saveScoreStatus === 'saving' && (
+                    <>
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-arc-accent/30 border-t-arc-accent" />
+                      Saving score on-chain...
+                    </>
+                  )}
+                  {saveScoreStatus === 'sent' && (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Transaction sent...
+                    </>
+                  )}
+                  {saveScoreStatus === 'saved' && (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Saved to leaderboard!
+                    </>
+                  )}
+                  {saveScoreStatus === 'error' && (
+                    <>
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      {saveScoreError ?? 'Failed to save to leaderboard'}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Seções padronizadas — mesmo estilo de card */}
+              <div className="flex flex-col gap-3 overflow-hidden w-full">
+                <div className="rounded-xl border border-border bg-muted/30 p-3 transition-all hover:border-border hover:bg-muted/50">
+                  <div className="mb-1.5 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+>>>>>>> 3813cb1 (deploy)
                     <Wallet className="h-3 w-3 text-arc-accent" />
-                    Wallet Address
+                    Address
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-sm font-semibold text-foreground">{walletData && shortenAddress(walletData.address)}</span>
                     <div className="flex gap-1">
-                      <button onClick={copyAddress} className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent" title="Copy address">
+                      <button onClick={copyAddress} className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-muted hover:text-arc-accent" title="Copy address">
                         {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
                       </button>
-                      <a href={`https://testnet.arcscan.app/address/${walletData?.address}`} target="_blank" rel="noopener noreferrer" className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent" title="View on explorer">
+                        <a href={`https://testnet.arcscan.app/address/${walletData?.address}`} target="_blank" rel="noopener noreferrer" className="rounded-lg p-2 text-muted-foreground transition-all hover:bg-muted hover:text-arc-accent" title="View on explorer">
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     </div>
                   </div>
                 </div>
 
+<<<<<<< HEAD
                 {walletData?.balance !== undefined && (
                   <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
                     <div className="mb-2 flex items-center justify-between">
+=======
+                {(usdcBalance !== null || walletData?.balance !== undefined) && (
+                  <div className="rounded-xl border border-border bg-muted/30 p-3 transition-all hover:border-border hover:bg-muted/50">
+                    <div className="mb-1.5 flex items-center justify-between">
+>>>>>>> 3813cb1 (deploy)
                       <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                         <Coins className="h-3 w-3 text-arc-accent" />
                         USDC Balance
                       </div>
-                      {walletData.lastUpdated && (
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                      {walletData?.lastUpdated && (
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground opacity-80">
                           <Clock className="h-3 w-3" />
                           {new Date(walletData.lastUpdated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       )}
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-2xl font-bold text-transparent">
-                        {walletData.balanceFormatted || walletData.balance?.toFixed(2) || '0.00'}
+                      <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-xl font-bold text-transparent">
+                        {usdcBalance !== null ? usdcBalance.toFixed(2) : (walletData?.balanceFormatted ?? walletData?.balance?.toFixed(2) ?? "...")}
                       </span>
-                      <span className="text-xs text-muted-foreground">USDC</span>
+                      <span className="text-xs text-muted-foreground opacity-80">USDC</span>
                     </div>
                   </div>
                 )}
 
+<<<<<<< HEAD
                 <div className="w-full rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:border-white/20">
                   <div className="mb-2 flex items-center justify-between">
+=======
+                <div className="rounded-xl border border-border bg-muted/30 p-3 transition-all hover:border-border hover:bg-muted/50">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      <Coins className="h-3 w-3 text-arc-accent" />
+                      EUR Balance
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-xl font-bold text-transparent">
+                      {eurBalance !== null ? eurBalance.toFixed(2) : "..."}
+                    </span>
+                    <span className="text-xs text-muted-foreground opacity-80">EUR</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-muted/30 p-3 transition-all hover:border-border hover:bg-muted/50">
+                  <div className="mb-1.5 flex items-center justify-between">
+>>>>>>> 3813cb1 (deploy)
                     <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                       <Activity className="h-3 w-3 text-arc-accent" />
-                      Total Interactions
+                      Interactions
                     </div>
                     <div className="flex items-center gap-2">
                       {walletRank != null && (
@@ -734,7 +1018,7 @@ export function WalletCard() {
                       <button
                         onClick={() => walletData && fetchWalletStats(walletData.address, false, isConnected)}
                         disabled={isRefreshing || isLoadingStats}
-                        className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-arc-accent disabled:opacity-50"
+                        className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-arc-accent disabled:opacity-50"
                         title="Refresh stats"
                       >
                         <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing || isLoadingStats ? 'animate-spin' : ''}`} />
@@ -754,16 +1038,21 @@ export function WalletCard() {
                   ) : (
                     <>
                       <div className="flex items-baseline gap-2">
-                        <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-2xl font-bold text-transparent">
+                        <span className="bg-gradient-to-r from-arc-accent to-cyan-300 bg-clip-text text-xl font-bold text-transparent">
                           {(walletData?.interactions ?? 0).toLocaleString()}
                         </span>
-                        <span className="text-xs text-muted-foreground">transactions</span>
+                        <span className="text-xs text-muted-foreground opacity-80">transactions</span>
                       </div>
                       {chartData.length > 0 && (
+<<<<<<< HEAD
                         <div className="mt-4 w-full animate-in fade-in slide-in-from-bottom-4">
                           <div className="mb-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+=======
+                        <div className="h-28 w-full mt-2 animate-in fade-in slide-in-from-bottom-4">
+                          <div className="mb-1 flex items-center gap-1.5 text-[10px] text-muted-foreground opacity-80">
+>>>>>>> 3813cb1 (deploy)
                             <TrendingUp className="h-3 w-3 text-arc-accent" />
-                            <span>Growth over last 30 days</span>
+                            <span>Last 30 days</span>
                           </div>
                           <div className="relative w-full aspect-[4/1] min-h-[80px]">
                           <ResponsiveContainer width="100%" height="100%">
@@ -790,6 +1079,7 @@ export function WalletCard() {
                 </div>
               </div>
 
+<<<<<<< HEAD
               <MotionButton
                 onClick={handleDisconnect}
                 variant="outline"
@@ -798,10 +1088,112 @@ export function WalletCard() {
               >
                 {isConnected ? 'Disconnect wallet' : 'Clear lookup'}
               </MotionButton>
+=======
+              {/* Faucet */}
+              {walletData?.address && (
+                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                  <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    <Coins className="h-3 w-3 text-arc-accent" />
+                    Receive test tokens
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => requestFaucet('USDC')}
+                      disabled={faucetLoading !== null}
+                      className="h-11 w-full flex-1 rounded-lg border border-border bg-muted/50 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                    >
+                      {faucetLoading === 'USDC' ? (
+                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      ) : (
+                        'Receive USDC'
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => requestFaucet('EUR')}
+                      disabled={faucetLoading !== null}
+                      className="h-11 w-full flex-1 rounded-lg border border-border bg-muted/50 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                    >
+                      {faucetLoading === 'EUR' ? (
+                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      ) : (
+                        'Receive EUR'
+                      )}
+                    </Button>
+                  </div>
+                  {faucetSuccess && (
+                    <p className="mt-1.5 text-xs text-green-400">{faucetSuccess}</p>
+                  )}
+                  {faucetNotConfigured && (
+                    <p className="mt-1.5 text-xs text-muted-foreground opacity-80">Faucet is not configured on this server.</p>
+                  )}
+                  {faucetError && (
+                    <p className="mt-1.5 text-xs text-red-400">{faucetError}</p>
+                  )}
+                  <div className="mt-2.5 border-t border-border pt-2.5">
+                    <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Recent claims
+                    </p>
+                    {faucetHistoryLoading ? (
+                      <div className="flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-arc-accent/30 border-t-arc-accent" />
+                        Loading...
+                      </div>
+                    ) : faucetHistory.length === 0 ? (
+                      <p className="py-2 text-center text-xs text-muted-foreground opacity-80">No claims yet</p>
+                    ) : (
+                      <div className="max-h-40 overflow-y-auto rounded-lg border border-border bg-muted/20">
+                        <table className="w-full text-left text-[10px]">
+                          <thead className="sticky top-0 border-b border-border bg-muted/40 text-muted-foreground">
+                            <tr>
+                              <th className="px-2 py-1.5 font-medium">Wallet</th>
+                              <th className="px-2 py-1.5 font-medium">Token</th>
+                              <th className="px-2 py-1.5 font-medium">Amount</th>
+                              <th className="px-2 py-1.5 font-medium">Time</th>
+                              <th className="px-2 py-1.5 font-medium">Tx</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {faucetHistory.map((claim, i) => (
+                              <tr key={`${claim.txHash}-${i}`} className="border-b border-border/50 last:border-0">
+                                <td className="px-2 py-1.5 font-mono text-foreground">{shortenAddress(claim.address)}</td>
+                                <td className="px-2 py-1.5 text-foreground">{claim.token}</td>
+                                <td className="px-2 py-1.5 text-foreground">{claim.amount}</td>
+                                <td className="px-2 py-1.5 text-muted-foreground">{timeAgo(claim.timestamp)}</td>
+                                <td className="px-2 py-1.5">
+                                  <a
+                                    href={`https://testnet.arcscan.app/tx/${claim.txHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-0.5 text-arc-accent hover:underline"
+                                    title={claim.txHash}
+                                  >
+                                    {claim.txHash.slice(0, 8)}…
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={handleDisconnect}
+                variant="outline"
+                className="h-10 w-full rounded-lg border border-border bg-muted/30 text-xs font-medium text-muted-foreground transition-all duration-200 hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+              >
+                {isConnected ? 'Disconnect' : 'Clear'}
+              </Button>
+>>>>>>> 3813cb1 (deploy)
             </div>
           )}
           </div>
-        </div>
       </div>
     </>
   )
